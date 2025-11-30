@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת הקצאת משימות | KKL</title>
+    
+    <!-- ArcGIS CSS -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --bg-card: #161d2d;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border-color: #374151;
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            direction: rtl;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 420px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sidebar-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .app-title {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .app-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Sidebar Content */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-badge {
+            margin-right: auto;
+            padding: 3px 10px;
+            background: var(--accent-primary);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-select option {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Filter Grid */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #2563eb);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-secondary), #059669);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-danger), #dc2626);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        /* Selection Info Card */
+        .selection-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .selection-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Selected Items List */
+        .selected-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .selected-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .selected-item-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selected-item-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent-primary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        .remove-item {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .remove-item:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        /* Interval Settings */
+        .interval-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .interval-input {
+            width: 80px;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Task Preview */
+        .task-preview {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .preview-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .preview-count {
+            padding: 4px 12px;
+            background: var(--accent-warning);
+            color: var(--bg-primary);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .preview-table {
+            width: 100%;
+            font-size: 12px;
+        }
+
+        .preview-table th {
+            text-align: right;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .preview-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #viewDiv {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Map Toolbar */
+        .map-toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .toolbar-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover, .toolbar-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .toolbar-btn.active {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Layer Panel */
+        .layer-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .layer-panel.collapsed {
+            width: 44px;
+            height: 44px;
+        }
+
+        .layer-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .layer-panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-panel.collapsed .layer-panel-title span {
+            display: none;
+        }
+
+        .layer-panel-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s;
+        }
+
+        .layer-panel.collapsed .layer-panel-toggle {
+            transform: rotate(180deg);
+        }
+
+        .layer-panel.collapsed .layer-panel-toggle {
+            display: none;
+        }
+
+        .layer-panel-content {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .layer-panel.collapsed .layer-panel-content {
+            display: none;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .layer-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .layer-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            background: var(--bg-tertiary);
+            border-radius: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .layer-toggle.active {
+            background: var(--accent-primary);
+        }
+
+        .layer-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .layer-toggle.active::after {
+            left: 20px;
+        }
+
+        .layer-info {
+            flex: 1;
+        }
+
+        .layer-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .layer-count {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .layer-symbol {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-items {
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .legend-symbol {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        /* Drawing Instructions */
+        .draw-instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 14px 24px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+        }
+
+        .draw-instructions.visible {
+            display: flex;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .draw-instructions-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .draw-instructions-text {
+            font-size: 14px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            z-index: 10;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+            animation: toastIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-color: var(--accent-secondary);
+        }
+
+        .toast.error {
+            border-color: var(--accent-danger);
+        }
+
+        .toast-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .toast.success .toast-icon {
+            background: var(--accent-secondary);
+        }
+
+        .toast.error .toast-icon {
+            background: var(--accent-danger);
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            width: 500px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--bg-tertiary);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Checkbox */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .checkbox-label input {
+            display: none;
+        }
+
+        .checkbox-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .checkbox-label input:checked + .checkbox-custom {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .checkbox-custom::after {
+            content: '✓';
+            color: white;
+            font-size: 11px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .checkbox-label input:checked + .checkbox-custom::after {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                bottom: 0;
+                height: 50%;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .map-container {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">📋</div>
+                    <div>
+                        <h1 class="app-title">הקצאת משימות</h1>
+                        <p class="app-subtitle">מערכת יצירת משימות גאוגרפיות | KKL</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Layer Selection -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">🗺️</div>
+                        <span class="section-title">בחירת שכבה</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">שכבת מקור לבחירת יישויות</label>
+                        <select class="form-select" id="sourceLayer">
+                            <option value="enclosures">מכלאות</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">🔍</div>
+                        <span class="section-title">סינון יישויות</span>
+                    </div>
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label class="form-label">מרחב</label>
+                            <select class="form-select" id="filterMerhav">
+                                <option value="">הכל</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">גוש</label>
+                            <select class="form-select" id="filterGush">
+                                <option value="">הכל</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btnApplyFilter">
+                            <span>החל סינון</span>
+                        </button>
+                        <button class="btn btn-secondary" id="btnClearFilter">
+                            <span>נקה</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selection Info -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">✅</div>
+                        <span class="section-title">יישויות נבחרות</span>
+                        <span class="section-badge" id="selectionCount">0</span>
+                    </div>
+                    <div class="selection-card">
+                        <div class="selection-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="statSelected">0</div>
+                                <div class="stat-label">נבחרו</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="statIntervals">1</div>
+                                <div class="stat-label">אינטרוולים</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="statTotalTasks">0</div>
+                                <div class="stat-label">סה"כ משימות</div>
+                            </div>
+                        </div>
+                        <div class="selected-list" id="selectedList">
+                            <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+                                לא נבחרו יישויות.<br>השתמש בכלי הבחירה במפה או בסינון.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="btnClearSelection">
+                            <span>נקה בחירה</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Task Settings -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">⚙️</div>
+                        <span class="section-title">הגדרות משימה</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">סוג משימה</label>
+                        <select class="form-select" id="taskType">
+                            <option value="0">משימה 1</option>
+                            <option value="1">משימה 2</option>
+                            <option value="2">משימה 3</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">סטטוס התחלתי</label>
+                        <select class="form-select" id="taskStatus">
+                            <option value="0" selected>לא הוקצה</option>
+                            <option value="1">הוקצה</option>
+                            <option value="2">בתהליך</option>
+                            <option value="3">הושלם</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">עדיפות</label>
+                        <select class="form-select" id="taskPriority">
+                            <option value="0">ללא</option>
+                            <option value="1">נמוכה</option>
+                            <option value="2" selected>בינונית</option>
+                            <option value="3">גבוהה</option>
+                            <option value="4">קריטית</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">מוקצה</label>
+                        <input type="text" class="form-input" id="taskAssignee" placeholder="שם המוקצה...">
+                    </div>
+                </div>
+
+                <!-- Time Intervals -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">📅</div>
+                        <span class="section-title">אינטרוולים זמניים</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableIntervals">
+                            <span class="checkbox-custom"></span>
+                            <span>הפעל אינטרוולים</span>
+                        </label>
+                    </div>
+
+                    <div id="intervalSettings" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">תאריך התחלה</label>
+                            <input type="date" class="form-input" id="startDate">
+                        </div>
+
+                        <div class="interval-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">יחידת זמן</label>
+                                <select class="form-select" id="intervalUnit">
+                                    <option value="day">יום</option>
+                                    <option value="week">שבוע</option>
+                                    <option value="month" selected>חודש</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">כמות</label>
+                                <input type="number" class="form-input interval-input" id="intervalCount" value="12" min="1" max="365">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">משך כל משימה</label>
+                            <div class="interval-row">
+                                <input type="number" class="form-input interval-input" id="taskDuration" value="1" min="1">
+                                <select class="form-select" id="taskDurationUnit" style="flex: 1;">
+                                    <option value="day">ימים</option>
+                                    <option value="week">שבועות</option>
+                                    <option value="month" selected>חודשים</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="singleDateSettings">
+                        <div class="date-inputs">
+                            <div class="form-group">
+                                <label class="form-label">תאריך התחלה</label>
+                                <input type="date" class="form-input" id="singleStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">תאריך סיום</label>
+                                <input type="date" class="form-input" id="singleEndDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview & Create -->
+                <div class="section">
+                    <div class="task-preview" id="taskPreview" style="display: none;">
+                        <div class="preview-header">
+                            <span class="preview-title">תצוגה מקדימה</span>
+                            <span class="preview-count" id="previewCount">0 משימות</span>
+                        </div>
+                        <div style="max-height: 150px; overflow-y: auto;">
+                            <table class="preview-table">
+                                <thead>
+                                    <tr>
+                                        <th>מכלאה</th>
+                                        <th>התחלה</th>
+                                        <th>סיום</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success btn-block" id="btnCreateTasks" disabled>
+                        <span>🚀</span>
+                        <span>צור משימות</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map -->
+        <main class="map-container">
+            <div id="viewDiv"></div>
+
+            <!-- Map Toolbar -->
+            <div class="map-toolbar">
+                <button class="toolbar-btn" id="btnSelect" title="בחירת יישויות">
+                    <span>🖱️</span>
+                </button>
+                <button class="toolbar-btn" id="btnRectangle" title="בחירה מלבנית">
+                    <span>⬜</span>
+                </button>
+                <button class="toolbar-btn" id="btnPolygon" title="בחירה פוליגון">
+                    <span>⬠</span>
+                </button>
+                <button class="toolbar-btn" id="btnHome" title="תצוגת בית">
+                    <span>🏠</span>
+                </button>
+            </div>
+
+            <!-- Layer Panel -->
+            <div class="layer-panel" id="layerPanel">
+                <div class="layer-panel-header" id="layerPanelHeader">
+                    <div class="layer-panel-title">
+                        <span>🗂️</span>
+                        <span>שכבות ומקרא</span>
+                    </div>
+                    <button class="layer-panel-toggle" id="layerPanelToggle">◀</button>
+                </div>
+                <div class="layer-panel-content" id="layerPanelContent">
+                    <!-- Layers will be added dynamically -->
+                </div>
+            </div>
+
+            <!-- Drawing Instructions -->
+            <div class="draw-instructions" id="drawInstructions">
+                <div class="draw-instructions-icon">✏️</div>
+                <div class="draw-instructions-text" id="drawInstructionsText">
+                    לחץ על המפה כדי להתחיל לצייר
+                </div>
+                <button class="btn btn-secondary" id="btnCancelDraw" style="padding: 8px 16px; font-size: 12px;">
+                    ביטול
+                </button>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar" id="statusBar">
+                מוכן | נטען...
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">אישור יצירת משימות</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>האם אתה בטוח שברצונך ליצור <strong id="confirmCount">0</strong> משימות חדשות?</p>
+                <p style="margin-top: 12px; color: var(--text-secondary); font-size: 13px;">
+                    פעולה זו תוסיף נקודות חדשות לשכבת המשימות.
+                </p>
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <p id="progressText" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); display: none;">
+                    מעבד... <span id="progressPercent">0</span>%
+                </p>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <button class="btn btn-secondary" id="btnModalCancel">ביטול</button>
+                <button class="btn btn-success" id="btnModalConfirm">
+                    <span>אשר ויצור</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ArcGIS JS -->
+    <script src="https://js.arcgis.com/4.30/"></script>
+    <script>
+        require([
+            "esri/config",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/widgets/Legend",
+            "esri/widgets/LayerList",
+            "esri/Graphic",
+            "esri/geometry/geometryEngine",
+            "esri/widgets/Sketch/SketchViewModel",
+            "esri/layers/GraphicsLayer",
+            "esri/core/reactiveUtils",
+            "esri/geometry/projection",
+            "esri/geometry/SpatialReference"
+        ], function(esriConfig, Map, MapView, FeatureLayer, Legend, LayerList, Graphic, geometryEngine, SketchViewModel, GraphicsLayer, reactiveUtils, projection, SpatialReference) {
+
+            // Set portal URL for KKL
+            esriConfig.portalUrl = "https://kkl.maps.arcgis.com";
+
+            // App State
+            const state = {
+                selectedFeatures: [],
+                isDrawing: false,
+                drawMode: null,
+                enclosuresData: [],
+                merhavOptions: new Set(),
+                gushOptions: new Set()
+            };
+
+            // Layer references
+            let enclosuresLayerView = null;
+
+            // Enclosures Layer (Polygon or Point) from portal item
+            const enclosuresLayer = new FeatureLayer({
+                portalItem: {
+                    id: "8cba9b9a00654dc5b9d4a85ad1332b39"
+                },
+                title: "מכלאות",
+                outFields: ["*"]
+            });
+
+            // Tasks Layer
+            const tasksLayer = new FeatureLayer({
+                portalItem: {
+                    id: "2a910a4cff14405ca381c2e054c29cea"
+                },
+                title: "משימות",
+                outFields: ["*"]
+            });
+
+            // Graphics Layer for selection highlight
+            const selectionGraphicsLayer = new GraphicsLayer({
+                title: "בחירה",
+                listMode: "hide"
+            });
+
+            // Sketch graphics layer
+            const sketchGraphicsLayer = new GraphicsLayer({
+                title: "שרטוט",
+                listMode: "hide"
+            });
+
+            // Initialize Map with layers
+            const map = new Map({
+                basemap: "streets-vector",
+                layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [35, 31.8],
+                zoom: 8,
+                ui: {
+                    components: ["zoom"]
+                }
+            });
+
+            // Selected features highlight symbol
+            const selectedSymbol = {
+                type: "simple-fill",
+                color: [245, 158, 11, 0.5],
+                outline: {
+                    color: [245, 158, 11, 1],
+                    width: 3
+                }
+            };
+
+            // Layer Panel functionality
+            function initLayerPanel() {
+                const panelContent = document.getElementById('layerPanelContent');
+                const layers = [
+                    { layer: enclosuresLayer, color: '#3b82f6', icon: '📍' },
+                    { layer: tasksLayer, color: '#10b981', icon: '📋' }
+                ];
+
+                let html = '';
+                layers.forEach((item, idx) => {
+                    html += `
+                        <div class="layer-item" data-layer-index="${idx}">
+                            <div class="layer-toggle ${item.layer.visible ? 'active' : ''}" data-layer-id="${item.layer.id}"></div>
+                            <div class="layer-symbol" style="background: ${item.color};">${item.icon}</div>
+                            <div class="layer-info">
+                                <div class="layer-name">${item.layer.title}</div>
+                                <div class="layer-count" id="layerCount${idx}">טוען...</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Add legend section
+                html += `
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">מקרא</div>
+                        <div id="legendContent">טוען מקרא...</div>
+                    </div>
+                `;
+
+                panelContent.innerHTML = html;
+
+                // Add click handlers for layer toggles
+                document.querySelectorAll('.layer-toggle').forEach(toggle => {
+                    toggle.addEventListener('click', function() {
+                        const layerId = this.dataset.layerId;
+                        const layer = map.layers.find(l => l.id === layerId);
+                        if (layer) {
+                            layer.visible = !layer.visible;
+                            this.classList.toggle('active', layer.visible);
+                        }
+                    });
+                });
+
+                // Panel collapse toggle
+                document.getElementById('layerPanelHeader').addEventListener('click', function() {
+                    document.getElementById('layerPanel').classList.toggle('collapsed');
+                });
+
+                // Update layer counts
+                updateLayerCounts();
+            }
+
+            async function updateLayerCounts() {
+                try {
+                    // Count enclosures
+                    const encQuery = enclosuresLayer.createQuery();
+                    encQuery.where = "1=1";
+                    encQuery.returnGeometry = false;
+                    const encResult = await enclosuresLayer.queryFeatureCount(encQuery);
+                    const el0 = document.getElementById('layerCount0');
+                    if (el0) el0.textContent = `${encResult} יישויות`;
+
+                    // Count tasks
+                    const taskQuery = tasksLayer.createQuery();
+                    taskQuery.where = "1=1";
+                    taskQuery.returnGeometry = false;
+                    const taskResult = await tasksLayer.queryFeatureCount(taskQuery);
+                    const el1 = document.getElementById('layerCount1');
+                    if (el1) el1.textContent = `${taskResult} משימות`;
+                } catch (e) {
+                    console.warn("Could not get layer counts:", e);
+                }
+            }
+
+            function updateLegend() {
+                const legendContent = document.getElementById('legendContent');
+                if (!legendContent) return;
+
+                let html = '';
+
+                // Enclosures legend
+                if (enclosuresLayer.renderer) {
+                    const renderer = enclosuresLayer.renderer;
+                    if (renderer.type === 'simple') {
+                        html += `
+                            <div class="legend-item">
+                                <div class="legend-symbol" style="background: #3b82f6;"></div>
+                                <span>מכלאות</span>
+                            </div>
+                        `;
+                    } else if (renderer.type === 'unique-value') {
+                        renderer.uniqueValueInfos.forEach(info => {
+                            const color = info.symbol.color ? `rgba(${info.symbol.color.r},${info.symbol.color.g},${info.symbol.color.b},${info.symbol.color.a})` : '#3b82f6';
+                            html += `
+                                <div class="legend-item">
+                                    <div class="legend-symbol" style="background: ${color};"></div>
+                                    <span>${info.label || info.value}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                } else {
+                    html += `
+                        <div class="legend-item">
+                            <div class="legend-symbol" style="background: #3b82f6;"></div>
+                            <span>מכלאות</span>
+                        </div>
+                    `;
+                }
+
+                // Tasks legend
+                html += `
+                    <div class="legend-item" style="margin-top: 8px;">
+                        <div class="legend-symbol" style="background: #10b981; border-radius: 50%;"></div>
+                        <span>משימות</span>
+                    </div>
+                `;
+
+                // Selection legend
+                html += `
+                    <div class="legend-item">
+                        <div class="legend-symbol" style="background: rgba(245,158,11,0.5); border: 2px solid #f59e0b;"></div>
+                        <span>נבחרות</span>
+                    </div>
+                `;
+
+                legendContent.innerHTML = html;
+            }
+
+            // Selection effect function
+            function updateSelectionEffect() {
+                if (!enclosuresLayerView) {
+                    return;
+                }
+
+                selectionGraphicsLayer.removeAll();
+
+                if (state.selectedFeatures.length === 0) {
+                    enclosuresLayerView.filter = null;
+                    enclosuresLayerView.effect = null;
+                    return;
+                }
+
+                const oidField = enclosuresLayer.objectIdField;
+                const ids = state.selectedFeatures.map(f => f.attributes[oidField]);
+                const where = oidField + " IN (" + ids.join(",") + ")";
+
+                enclosuresLayerView.effect = {
+                    filter: { where: where },
+                    includedEffect: "bloom(1.2) drop-shadow(0px, 0px, 6px)",
+                    excludedEffect: "opacity(50%)"
+                };
+
+                // Also add graphics for visual highlight
+                state.selectedFeatures.forEach(f => {
+                    const graphic = new Graphic({
+                        geometry: f.geometry,
+                        symbol: selectedSymbol
+                    });
+                    selectionGraphicsLayer.add(graphic);
+                });
+            }
+
+            // Load filter options
+            async function loadFilterOptions() {
+                try {
+                    const query = enclosuresLayer.createQuery();
+                    query.where = "1=1";
+                    query.outFields = ["MerhavName", "GushName", "GlobalID", "OBJECTID"];
+                    query.returnGeometry = true;
+
+                    const result = await enclosuresLayer.queryFeatures(query);
+                    state.enclosuresData = result.features;
+
+                    result.features.forEach(f => {
+                        if (f.attributes.MerhavName) state.merhavOptions.add(f.attributes.MerhavName);
+                        if (f.attributes.GushName) state.gushOptions.add(f.attributes.GushName);
+                    });
+
+                    // Populate dropdowns
+                    const merhavSelect = document.getElementById('filterMerhav');
+                    const gushSelect = document.getElementById('filterGush');
+
+                    [...state.merhavOptions].sort().forEach(opt => {
+                        merhavSelect.add(new Option(opt, opt));
+                    });
+
+                    [...state.gushOptions].sort().forEach(opt => {
+                        gushSelect.add(new Option(opt, opt));
+                    });
+
+                    updateStatus(`נטענו ${result.features.length} מכלאות`);
+                } catch (error) {
+                    console.error("Error loading filter options:", error);
+                    showToast("שגיאה בטעינת הנתונים", "error");
+                }
+            }
+
+            // Update selection display
+            function updateSelectionDisplay() {
+                const count = state.selectedFeatures.length;
+                document.getElementById('selectionCount').textContent = count;
+                document.getElementById('statSelected').textContent = count;
+
+                const intervals = document.getElementById('enableIntervals').checked ? 
+                    parseInt(document.getElementById('intervalCount').value) || 1 : 1;
+                document.getElementById('statIntervals').textContent = intervals;
+                
+                const totalTasks = count * intervals;
+                document.getElementById('statTotalTasks').textContent = totalTasks;
+
+                const listContainer = document.getElementById('selectedList');
+                
+                if (count === 0) {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+                            לא נבחרו יישויות.<br>השתמש בכלי הבחירה במפה או בסינון.
+                        </div>
+                    `;
+                    document.getElementById('btnCreateTasks').disabled = true;
+                    document.getElementById('taskPreview').style.display = 'none';
+                } else {
+                    listContainer.innerHTML = state.selectedFeatures.map((f, idx) => `
+                        <div class="selected-item">
+                            <div class="selected-item-name">
+                                <div class="selected-item-icon">📍</div>
+                                <span>${f.attributes.GushName || f.attributes.MerhavName || 'מכלאה ' + (idx + 1)}</span>
+                            </div>
+                            <button class="remove-item" onclick="removeSelection(${idx})">✕</button>
+                        </div>
+                    `).join('');
+                    document.getElementById('btnCreateTasks').disabled = false;
+                    updatePreview();
+                }
+
+                // Update selection effect on map
+                updateSelectionEffect();
+            }
+
+            // Remove selection
+            window.removeSelection = function(index) {
+                state.selectedFeatures.splice(index, 1);
+                updateSelectionDisplay();
+            };
+
+            // Update preview
+            function updatePreview() {
+                const preview = document.getElementById('taskPreview');
+                const tbody = document.getElementById('previewTableBody');
+                
+                if (state.selectedFeatures.length === 0) {
+                    preview.style.display = 'none';
+                    return;
+                }
+
+                preview.style.display = 'block';
+                const tasks = generateTasksPreview();
+                document.getElementById('previewCount').textContent = `${tasks.length} משימות`;
+
+                // Show only first 10 in preview
+                const previewTasks = tasks.slice(0, 10);
+                tbody.innerHTML = previewTasks.map(t => `
+                    <tr>
+                        <td>${t.name}</td>
+                        <td>${formatDate(t.startDate)}</td>
+                        <td>${formatDate(t.endDate)}</td>
+                    </tr>
+                `).join('');
+
+                if (tasks.length > 10) {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted);">
+                                ועוד ${tasks.length - 10} משימות נוספות...
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            // Generate tasks preview
+            function generateTasksPreview() {
+                const tasks = [];
+                const enableIntervals = document.getElementById('enableIntervals').checked;
+
+                if (enableIntervals) {
+                    const startDate = new Date(document.getElementById('startDate').value || Date.now());
+                    const intervalUnit = document.getElementById('intervalUnit').value;
+                    const intervalCount = parseInt(document.getElementById('intervalCount').value) || 1;
+                    const taskDuration = parseInt(document.getElementById('taskDuration').value) || 1;
+                    const taskDurationUnit = document.getElementById('taskDurationUnit').value;
+
+                    for (let i = 0; i < intervalCount; i++) {
+                        state.selectedFeatures.forEach(f => {
+                            const taskStart = new Date(startDate);
+                            const taskEnd = new Date(startDate);
+
+                            // Calculate start date
+                            if (intervalUnit === 'day') {
+                                taskStart.setDate(taskStart.getDate() + i);
+                            } else if (intervalUnit === 'week') {
+                                taskStart.setDate(taskStart.getDate() + (i * 7));
+                            } else if (intervalUnit === 'month') {
+                                taskStart.setMonth(taskStart.getMonth() + i);
+                            }
+
+                            // Calculate end date
+                            taskEnd.setTime(taskStart.getTime());
+                            if (taskDurationUnit === 'day') {
+                                taskEnd.setDate(taskEnd.getDate() + taskDuration);
+                            } else if (taskDurationUnit === 'week') {
+                                taskEnd.setDate(taskEnd.getDate() + (taskDuration * 7));
+                            } else if (taskDurationUnit === 'month') {
+                                taskEnd.setMonth(taskEnd.getMonth() + taskDuration);
+                            }
+
+                            tasks.push({
+                                feature: f,
+                                name: f.attributes.GushName || f.attributes.MerhavName || 'מכלאה',
+                                startDate: taskStart,
+                                endDate: taskEnd,
+                                interval: i + 1
+                            });
+                        });
+                    }
+                } else {
+                    const startDate = new Date(document.getElementById('singleStartDate').value || Date.now());
+                    const endDate = new Date(document.getElementById('singleEndDate').value || Date.now());
+
+                    state.selectedFeatures.forEach(f => {
+                        tasks.push({
+                            feature: f,
+                            name: f.attributes.GushName || f.attributes.MerhavName || 'מכלאה',
+                            startDate: startDate,
+                            endDate: endDate,
+                            interval: 1
+                        });
+                    });
+                }
+
+                return tasks;
+            }
+
+            // Format date
+            function formatDate(date) {
+                return date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+
+            // Apply filter
+            document.getElementById('btnApplyFilter').addEventListener('click', async () => {
+                const merhav = document.getElementById('filterMerhav').value;
+                const gush = document.getElementById('filterGush').value;
+
+                let whereClause = "1=1";
+                if (merhav) whereClause += ` AND MerhavName = '${merhav}'`;
+                if (gush) whereClause += ` AND GushName = '${gush}'`;
+
+                const filtered = state.enclosuresData.filter(f => {
+                    let match = true;
+                    if (merhav && f.attributes.MerhavName !== merhav) match = false;
+                    if (gush && f.attributes.GushName !== gush) match = false;
+                    return match;
+                });
+
+                state.selectedFeatures = [...filtered];
+                updateSelectionDisplay();
+
+                if (filtered.length > 0) {
+                    showToast(`נבחרו ${filtered.length} מכלאות`, "success");
+                    
+                    // Zoom to selected features
+                    const extent = filtered.reduce((ext, f) => {
+                        if (!ext) return f.geometry.extent;
+                        return ext.union(f.geometry.extent);
+                    }, null);
+                    if (extent) view.goTo(extent.expand(1.5));
+                } else {
+                    showToast("לא נמצאו תוצאות", "error");
+                }
+            });
+
+            // Clear filter
+            document.getElementById('btnClearFilter').addEventListener('click', () => {
+                document.getElementById('filterMerhav').value = '';
+                document.getElementById('filterGush').value = '';
+            });
+
+            // Clear selection
+            document.getElementById('btnClearSelection').addEventListener('click', () => {
+                state.selectedFeatures = [];
+                updateSelectionDisplay();
+            });
+
+            // Toggle intervals
+            document.getElementById('enableIntervals').addEventListener('change', (e) => {
+                document.getElementById('intervalSettings').style.display = e.target.checked ? 'block' : 'none';
+                document.getElementById('singleDateSettings').style.display = e.target.checked ? 'none' : 'block';
+                updateSelectionDisplay();
+            });
+
+            // Update preview on settings change
+            ['intervalCount', 'intervalUnit', 'taskDuration', 'taskDurationUnit', 'startDate', 'singleStartDate', 'singleEndDate'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updatePreview);
+            });
+
+            // SketchViewModel for drawing
+            let sketchViewModel = null;
+
+            function initSketchViewModel() {
+                if (sketchViewModel) return;
+                
+                sketchViewModel = new SketchViewModel({
+                    view: view,
+                    layer: sketchGraphicsLayer,
+                    polygonSymbol: {
+                        type: "simple-fill",
+                        color: [59, 130, 246, 0.2],
+                        outline: {
+                            color: [59, 130, 246, 1],
+                            width: 2
+                        }
+                    },
+                    updateOnGraphicClick: false
+                });
+
+                sketchViewModel.on("create", async (event) => {
+                    if (event.state === "complete") {
+                        const geometry = event.graphic.geometry;
+                        console.log("Sketch complete, geometry:", geometry);
+                        await selectByGeometry(geometry);
+                        sketchGraphicsLayer.removeAll();
+                        stopDrawing();
+                    }
+                });
+            }
+
+            function startDrawing(mode) {
+                state.isDrawing = true;
+                state.drawMode = mode;
+                document.getElementById('drawInstructions').classList.add('visible');
+                
+                // Deactivate other buttons
+                document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
+                
+                if (mode === 'select') {
+                    document.getElementById('btnSelect').classList.add('active');
+                    document.getElementById('drawInstructionsText').textContent = 'לחץ על מכלאה לבחירה';
+                } else if (mode === 'rectangle') {
+                    document.getElementById('btnRectangle').classList.add('active');
+                    document.getElementById('drawInstructionsText').textContent = 'גרור מלבן לבחירת מכלאות';
+                    initSketchViewModel();
+                    sketchViewModel.create("rectangle");
+                } else if (mode === 'polygon') {
+                    document.getElementById('btnPolygon').classList.add('active');
+                    document.getElementById('drawInstructionsText').textContent = 'לחץ לשרטוט פוליגון, לחיצה כפולה לסיום';
+                    initSketchViewModel();
+                    sketchViewModel.create("polygon");
+                }
+            }
+
+            function stopDrawing() {
+                state.isDrawing = false;
+                state.drawMode = null;
+                document.getElementById('drawInstructions').classList.remove('visible');
+                document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
+                sketchGraphicsLayer.removeAll();
+                if (sketchViewModel) {
+                    sketchViewModel.cancel();
+                }
+            }
+
+            document.getElementById('btnSelect').addEventListener('click', () => startDrawing('select'));
+            document.getElementById('btnRectangle').addEventListener('click', () => startDrawing('rectangle'));
+            document.getElementById('btnPolygon').addEventListener('click', () => startDrawing('polygon'));
+            document.getElementById('btnCancelDraw').addEventListener('click', stopDrawing);
+
+            document.getElementById('btnHome').addEventListener('click', () => {
+                view.goTo({ center: [35.2, 31.5], zoom: 8 });
+            });
+
+            // Select by geometry - FIXED VERSION using spatial query
+            async function selectByGeometry(geometry) {
+                try {
+                    updateStatus("מחפש מכלאות באזור שנבחר...");
+                    
+                    // Query the layer directly with the geometry
+                    const query = enclosuresLayer.createQuery();
+                    query.geometry = geometry;
+                    query.spatialRelationship = "intersects";
+                    query.outFields = ["*"];
+                    query.returnGeometry = true;
+
+                    console.log("Querying with geometry:", geometry);
+                    const result = await enclosuresLayer.queryFeatures(query);
+                    console.log("Query result:", result.features.length, "features");
+
+                    if (result.features.length === 0) {
+                        showToast("לא נמצאו מכלאות באזור שנבחר", "error");
+                        updateStatus("לא נמצאו מכלאות");
+                        return;
+                    }
+
+                    // Add to selection (avoiding duplicates)
+                    const oidField = enclosuresLayer.objectIdField;
+                    let addedCount = 0;
+
+                    result.features.forEach(f => {
+                        const exists = state.selectedFeatures.some(sf => 
+                            sf.attributes[oidField] === f.attributes[oidField]
+                        );
+                        if (!exists) {
+                            state.selectedFeatures.push(f);
+                            addedCount++;
+                        }
+                    });
+
+                    updateSelectionDisplay();
+                    showToast(`נוספו ${addedCount} מכלאות לבחירה`, "success");
+                    updateStatus(`נבחרו ${state.selectedFeatures.length} מכלאות`);
+
+                } catch (error) {
+                    console.error("Error in selectByGeometry:", error);
+                    showToast("שגיאה בבחירת מכלאות: " + error.message, "error");
+                    updateStatus("שגיאה בבחירה");
+                }
+            }
+
+            // Create tasks
+            document.getElementById('btnCreateTasks').addEventListener('click', () => {
+                const tasks = generateTasksPreview();
+                document.getElementById('confirmCount').textContent = tasks.length;
+                document.getElementById('confirmModal').classList.add('visible');
+            });
+
+            document.getElementById('modalClose').addEventListener('click', closeModal);
+            document.getElementById('btnModalCancel').addEventListener('click', closeModal);
+
+            function closeModal() {
+                document.getElementById('confirmModal').classList.remove('visible');
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('progressText').style.display = 'none';
+                document.getElementById('modalFooter').style.display = 'flex';
+            }
+
+            document.getElementById('btnModalConfirm').addEventListener('click', createTasks);
+
+            async function createTasks() {
+                const tasks = generateTasksPreview();
+                const taskType = parseInt(document.getElementById('taskType').value);
+                const taskStatus = parseInt(document.getElementById('taskStatus').value);
+                const taskPriority = parseInt(document.getElementById('taskPriority').value);
+                const taskAssignee = document.getElementById('taskAssignee').value;
+
+                // Show progress
+                document.getElementById('modalFooter').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'block';
+                document.getElementById('progressText').style.display = 'block';
+
+                const edits = [];
+
+                for (let i = 0; i < tasks.length; i++) {
+                    const task = tasks[i];
+                    let pointGeom = task.feature.geometry;
+
+                    // If geometry is polygon/polyline, get centroid
+                    if (pointGeom.type !== "point") {
+                        pointGeom = geometryEngine.centroid(pointGeom);
+                    }
+
+                    // Build attributes with correct domain codes
+                    const attributes = {
+                        esritask_type: taskType,
+                        esritask_status: taskStatus,
+                        esritask_priority: taskPriority,
+                        esritask_duedate: task.endDate.getTime(),
+                        ParentFeatureGlobalID: task.feature.attributes.GlobalID
+                    };
+
+                    // Add assignee if provided
+                    if (taskAssignee && taskAssignee.trim()) {
+                        attributes.esritask_assignee = taskAssignee.trim();
+                    }
+
+                    edits.push({
+                        geometry: pointGeom,
+                        attributes: attributes
+                    });
+
+                    // Update progress
+                    const progress = Math.round(((i + 1) / tasks.length) * 50);
+                    document.getElementById('progressFill').style.width = `${progress}%`;
+                    document.getElementById('progressPercent').textContent = progress;
+                }
+
+                console.log("Creating tasks with edits:", edits);
+                console.log("Sample attributes:", edits[0]?.attributes);
+                console.log("Sample geometry:", edits[0]?.geometry);
+                console.log("Tasks layer spatial reference:", tasksLayer.spatialReference);
+
+                try {
+                    // Apply edits in batches
+                    const batchSize = 100;
+                    let completed = 0;
+                    let totalSuccess = 0;
+                    let totalFail = 0;
+
+                    for (let i = 0; i < edits.length; i += batchSize) {
+                        const batch = edits.slice(i, i + batchSize);
+                        
+                        console.log("Sending batch of", batch.length, "features");
+                        
+                        const result = await tasksLayer.applyEdits({
+                            addFeatures: batch.map(e => new Graphic(e))
+                        });
+
+                        console.log("Batch result:", result);
+
+                        if (result.addFeatureResults) {
+                            result.addFeatureResults.forEach((r, idx) => {
+                                if (r.error) {
+                                    console.error("Feature error:", r.error);
+                                    totalFail++;
+                                } else {
+                                    totalSuccess++;
+                                }
+                            });
+                        }
+
+                        completed += batch.length;
+                        const progress = 50 + Math.round((completed / edits.length) * 50);
+                        document.getElementById('progressFill').style.width = `${progress}%`;
+                        document.getElementById('progressPercent').textContent = progress;
+                    }
+
+                    closeModal();
+                    
+                    if (totalFail > 0) {
+                        showToast(`נוצרו ${totalSuccess} משימות, ${totalFail} נכשלו`, "error");
+                    } else {
+                        showToast(`נוצרו ${totalSuccess} משימות בהצלחה!`, "success");
+                    }
+                    
+                    // Clear selection
+                    state.selectedFeatures = [];
+                    updateSelectionDisplay();
+
+                    // Refresh tasks layer and update counts
+                    tasksLayer.refresh();
+                    updateLayerCounts();
+
+                } catch (error) {
+                    console.error("Error creating tasks:", error);
+                    console.error("Error details:", JSON.stringify(error, null, 2));
+                    closeModal();
+                    showToast("שגיאה ביצירת המשימות: " + error.message, "error");
+                }
+            }
+
+            // Toast notifications
+            function showToast(message, type = "success") {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <div class="toast-icon">${type === 'success' ? '✓' : '✕'}</div>
+                    <span>${message}</span>
+                `;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.animation = 'toastIn 0.3s ease reverse';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            // Update status
+            function updateStatus(message) {
+                document.getElementById('statusBar').textContent = message;
+            }
+
+            // Set default dates
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+            document.getElementById('singleStartDate').value = today.toISOString().split('T')[0];
+            document.getElementById('singleEndDate').value = nextMonth.toISOString().split('T')[0];
+
+            // Initialize
+            view.when().then(function() {
+                updateStatus("מפה נטענה, ממתין לשכבות...");
+                
+                // Wait for layers to load
+                reactiveUtils.whenOnce(() => enclosuresLayer.loaded && tasksLayer.loaded)
+                    .then(function() {
+                        updateStatus("שכבות נטענו בהצלחה");
+                        console.log("Layers loaded successfully");
+                        console.log("Enclosures layer object ID field:", enclosuresLayer.objectIdField);
+                        console.log("Enclosures layer geometry type:", enclosuresLayer.geometryType);
+                        
+                        // Log tasks layer info for debugging
+                        console.log("=== Tasks Layer Info ===");
+                        console.log("Tasks layer geometry type:", tasksLayer.geometryType);
+                        console.log("Tasks layer object ID field:", tasksLayer.objectIdField);
+                        console.log("Tasks layer capabilities:", tasksLayer.capabilities);
+                        console.log("Tasks layer editable:", tasksLayer.editingEnabled);
+                        
+                        // Log all fields
+                        console.log("Tasks layer fields:");
+                        tasksLayer.fields.forEach(field => {
+                            console.log(`  - ${field.name} (${field.type})${field.nullable ? '' : ' [REQUIRED]'}${field.domain ? ' [DOMAIN]' : ''}`);
+                        });
+                        
+                        // Check edit capabilities
+                        if (tasksLayer.capabilities && tasksLayer.capabilities.editing) {
+                            console.log("Editing capabilities:", tasksLayer.capabilities.editing);
+                        }
+                        
+                        loadFilterOptions();
+                        initLayerPanel();
+                        updateLegend();
+                    });
+
+                // Get LayerView for enclosures layer
+                view.whenLayerView(enclosuresLayer).then(function(lv) {
+                    enclosuresLayerView = lv;
+                    console.log("LayerView for enclosures ready");
+
+                    // Click handler for selecting enclosures
+                    view.on("click", function(event) {
+                        if (state.drawMode !== 'select') return;
+
+                        view.hitTest(event).then(function(response) {
+                            const results = response.results.filter(function(r) {
+                                return r.graphic && r.graphic.layer === enclosuresLayer;
+                            });
+
+                            if (!results.length) return;
+
+                            const graphic = results[0].graphic;
+                            const oidField = enclosuresLayer.objectIdField;
+                            const oid = graphic.attributes[oidField];
+
+                            // Check if already selected
+                            const existingIndex = state.selectedFeatures.findIndex(f => 
+                                f.attributes[oidField] === oid
+                            );
+
+                            if (existingIndex >= 0) {
+                                // Remove from selection
+                                state.selectedFeatures.splice(existingIndex, 1);
+                                showToast("מכלאה הוסרה מהבחירה", "success");
+                            } else {
+                                // Add to selection
+                                state.selectedFeatures.push(graphic);
+                                showToast("מכלאה נוספה לבחירה", "success");
+                            }
+                            
+                            updateSelectionDisplay();
+                        });
+                    });
+                });
+            }).catch(function(err) {
+                console.error("Error loading map:", err);
+                showToast("שגיאה בטעינת המפה: " + err, "error");
+                updateStatus("שגיאה בטעינת המפה");
+            });
+        });
+    </script>
+</body>
+</html>
