@@ -2,17 +2,13 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת הקצאת משימות | KKL</title>
-    
-    <!-- ArcGIS CSS -->
-    <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0f1a">
+    <title>הקצאת משימות | KKL</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #0a0f1a;
@@ -1024,19 +1020,587 @@
             opacity: 1;
         }
 
-        /* Responsive */
-        @media (max-width: 900px) {
+        /* Responsive - Tablet */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 360px;
+            }
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
             .sidebar {
                 width: 100%;
-                position: absolute;
+                position: fixed;
                 bottom: 0;
-                height: 50%;
+                left: 0;
+                right: 0;
+                height: 55%;
+                max-height: 55vh;
                 border-left: none;
                 border-top: 1px solid var(--border-color);
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                z-index: 200;
+                transform: translateY(calc(100% - 60px));
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.expanded {
+                transform: translateY(0);
+            }
+
+            .sidebar-header {
+                padding: 12px 16px;
+                cursor: pointer;
+                position: relative;
+            }
+
+            .sidebar-header::before {
+                content: '';
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 40px;
+                height: 4px;
+                background: var(--border-color);
+                border-radius: 2px;
+            }
+
+            .logo-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .app-title {
+                font-size: 18px;
+            }
+
+            .app-subtitle {
+                font-size: 11px;
+            }
+
+            .sidebar-content {
+                padding: 12px;
+                max-height: calc(55vh - 80px);
             }
 
             .map-container {
-                height: 50%;
+                height: 100%;
+                position: relative;
+            }
+
+            /* Map Toolbar - Mobile */
+            .map-toolbar {
+                top: 10px;
+                right: 10px;
+                gap: 6px;
+            }
+
+            .toolbar-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+
+            /* Layer Panel - Mobile */
+            .layer-panel {
+                top: 10px;
+                left: 10px;
+                width: 220px;
+                max-height: 300px;
+            }
+
+            .layer-panel.collapsed {
+                width: 40px;
+                height: 40px;
+            }
+
+            .layer-panel-header {
+                padding: 10px 12px;
+            }
+
+            .layer-panel-title {
+                font-size: 12px;
+            }
+
+            .layer-panel-content {
+                max-height: 200px;
+                padding: 8px;
+            }
+
+            .layer-item {
+                padding: 8px 10px;
+                gap: 8px;
+            }
+
+            .layer-name {
+                font-size: 12px;
+            }
+
+            .layer-count {
+                font-size: 10px;
+            }
+
+            /* Drawing Instructions - Mobile */
+            .draw-instructions {
+                bottom: calc(55% + 20px);
+                padding: 10px 16px;
+                gap: 8px;
+            }
+
+            .draw-instructions-icon {
+                width: 30px;
+                height: 30px;
+            }
+
+            .draw-instructions-text {
+                font-size: 12px;
+            }
+
+            /* Status Bar - Mobile */
+            .status-bar {
+                bottom: calc(55% + 10px);
+                right: 10px;
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            /* Sections - Mobile */
+            .section {
+                margin-bottom: 16px;
+            }
+
+            .section-header {
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                gap: 8px;
+            }
+
+            .section-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            .section-title {
+                font-size: 14px;
+            }
+
+            .section-badge {
+                padding: 2px 8px;
+                font-size: 10px;
+            }
+
+            /* Form Elements - Mobile */
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-label {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+
+            .form-select, .form-input {
+                padding: 10px 12px;
+                font-size: 14px;
+                /* Prevent zoom on iOS */
+                font-size: 16px;
+            }
+
+            .filter-grid {
+                gap: 8px;
+            }
+
+            /* Buttons - Mobile */
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+                min-height: 44px; /* Touch target */
+            }
+
+            .btn-sm {
+                padding: 8px 12px;
+                font-size: 11px;
+                min-height: 36px;
+            }
+
+            .btn-group {
+                gap: 8px;
+            }
+
+            /* Selection Card - Mobile */
+            .selection-card {
+                padding: 12px;
+            }
+
+            .selection-stats {
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .stat-item {
+                padding: 10px 8px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .stat-label {
+                font-size: 10px;
+            }
+
+            .selected-list {
+                max-height: 120px;
+            }
+
+            .selected-item {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .selected-item-icon {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+
+            .remove-item {
+                padding: 6px;
+                min-width: 28px;
+                min-height: 28px;
+            }
+
+            /* History Panel - Mobile */
+            .history-panel {
+                padding: 12px;
+            }
+
+            .history-header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .history-title {
+                font-size: 13px;
+            }
+
+            .history-actions {
+                gap: 6px;
+            }
+
+            .history-list {
+                max-height: 100px;
+            }
+
+            .history-item {
+                padding: 8px 10px;
+                font-size: 11px;
+            }
+
+            .history-item-icon {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+
+            .history-item-count {
+                padding: 2px 6px;
+                font-size: 9px;
+            }
+
+            /* Task Preview - Mobile */
+            .task-preview {
+                padding: 12px;
+            }
+
+            .preview-header {
+                margin-bottom: 10px;
+            }
+
+            .preview-title {
+                font-size: 13px;
+            }
+
+            .preview-count {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+
+            .preview-table {
+                font-size: 11px;
+            }
+
+            .preview-table th,
+            .preview-table td {
+                padding: 6px;
+            }
+
+            /* Interval Settings - Mobile */
+            .interval-row {
+                gap: 8px;
+            }
+
+            .interval-input {
+                width: 70px;
+            }
+
+            .date-inputs {
+                gap: 8px;
+            }
+
+            /* Modal - Mobile */
+            .modal {
+                width: 95vw;
+                max-height: 85vh;
+                margin: 10px;
+            }
+
+            .modal-header {
+                padding: 16px;
+            }
+
+            .modal-title {
+                font-size: 16px;
+            }
+
+            .modal-body {
+                padding: 16px;
+                max-height: 50vh;
+            }
+
+            .modal-footer {
+                padding: 12px 16px;
+                gap: 8px;
+            }
+
+            /* Toast - Mobile */
+            .toast-container {
+                width: 90%;
+                max-width: 400px;
+            }
+
+            .toast {
+                padding: 12px 16px;
+                gap: 10px;
+            }
+
+            .toast-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+
+            /* Legend - Mobile */
+            .legend-item {
+                font-size: 11px;
+            }
+
+            .legend-symbol {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        /* Responsive - Small Mobile */
+        @media (max-width: 480px) {
+            .sidebar {
+                height: 60%;
+                max-height: 60vh;
+            }
+
+            .sidebar-content {
+                max-height: calc(60vh - 80px);
+            }
+
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .selection-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .stat-value {
+                font-size: 18px;
+            }
+
+            .date-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .layer-panel {
+                width: 180px;
+            }
+
+            .layer-panel-content {
+                max-height: 150px;
+            }
+
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .history-actions {
+                width: 100%;
+            }
+
+            .history-actions .btn {
+                flex: 1;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn-group .btn {
+                width: 100%;
+            }
+
+            .status-bar {
+                bottom: calc(60% + 10px);
+                left: 10px;
+                right: 10px;
+                text-align: center;
+            }
+
+            .draw-instructions {
+                bottom: calc(60% + 20px);
+                width: 90%;
+                flex-wrap: wrap;
+                justify-content: center;
+                text-align: center;
+            }
+        }
+
+        /* Landscape Mobile */
+        @media (max-width: 900px) and (orientation: landscape) {
+            .app-container {
+                flex-direction: row;
+            }
+
+            .sidebar {
+                width: 320px;
+                height: 100%;
+                max-height: 100vh;
+                position: relative;
+                transform: none;
+                border-radius: 0;
+                border-top: none;
+                border-left: 1px solid var(--border-color);
+            }
+
+            .sidebar-header::before {
+                display: none;
+            }
+
+            .sidebar-content {
+                max-height: calc(100vh - 80px);
+            }
+
+            .map-container {
+                flex: 1;
+            }
+
+            .status-bar {
+                bottom: 20px;
+            }
+
+            .draw-instructions {
+                bottom: 30px;
+            }
+        }
+
+        /* Touch improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .toolbar-btn,
+            .btn,
+            .layer-toggle,
+            .remove-item,
+            .modal-close {
+                cursor: default;
+            }
+
+            .toolbar-btn:active,
+            .btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Larger touch targets */
+            .checkbox-label {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+
+            .checkbox-custom {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
+        /* Safe area for notched phones */
+        @supports (padding: max(0px)) {
+            .sidebar {
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+
+            .map-toolbar {
+                top: max(10px, env(safe-area-inset-top));
+                right: max(10px, env(safe-area-inset-right));
+            }
+
+            .layer-panel {
+                top: max(10px, env(safe-area-inset-top));
+                left: max(10px, env(safe-area-inset-left));
+            }
+        }
+
+        /* Mobile swipe hint */
+        .mobile-hint {
+            display: none;
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            z-index: 150;
+            animation: pulseHint 2s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-hint {
+                display: block;
+            }
+
+            .sidebar.expanded ~ .mobile-hint,
+            .mobile-hint.hidden {
+                display: none;
+            }
+        }
+
+        @keyframes pulseHint {
+            0%, 100% {
+                opacity: 0.7;
+                transform: translateX(-50%) translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-5px);
             }
         }
     </style>
@@ -1077,8 +1641,8 @@
                     </div>
                     <div class="form-group">
                         <select class="form-select" id="basemapSelect">
-                            <option value="gray-vector"selected>אפור</option>
-                            <option value="dark-gray-vector" >אפור כהה</option>
+                            <option value="dark-gray-vector" selected>אפור כהה</option>
+                            <option value="gray-vector">אפור</option>
                             <option value="streets-vector">רחובות</option>
                             <option value="satellite">לוויין</option>
                             <option value="hybrid">היברידי</option>
@@ -1343,6 +1907,11 @@
             </div>
         </aside>
 
+        <!-- Mobile Swipe Hint -->
+        <div class="mobile-hint" id="mobileHint">
+            ☝️ החלק למעלה לפתיחת התפריט
+        </div>
+
         <!-- Map -->
         <main class="map-container">
             <div id="viewDiv"></div>
@@ -1498,7 +2067,7 @@
 
             // Initialize Map with layers
             const map = new Map({
-                basemap: "gray-vector",
+                basemap: "dark-gray-vector",
                 layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
             });
 
@@ -2477,6 +3046,93 @@
             document.getElementById('basemapSelect').addEventListener('change', function(e) {
                 map.basemap = e.target.value;
                 showToast("מפת רקע שונתה", "success");
+            });
+
+            // =====================================================
+            // MOBILE SIDEBAR TOGGLE
+            // =====================================================
+            
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarHeader = document.querySelector('.sidebar-header');
+            const mobileHint = document.getElementById('mobileHint');
+            
+            // Check if mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+
+            // Toggle sidebar on mobile
+            function toggleMobileSidebar() {
+                if (isMobile()) {
+                    sidebar.classList.toggle('expanded');
+                    // Hide hint after first use
+                    if (sidebar.classList.contains('expanded') && mobileHint) {
+                        mobileHint.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Click on header to toggle
+            sidebarHeader.addEventListener('click', function(e) {
+                if (isMobile()) {
+                    e.stopPropagation();
+                    toggleMobileSidebar();
+                }
+            });
+
+            // Swipe gestures for mobile sidebar
+            let touchStartY = 0;
+            let touchEndY = 0;
+
+            sidebar.addEventListener('touchstart', function(e) {
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+
+            sidebar.addEventListener('touchend', function(e) {
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                if (!isMobile()) return;
+                
+                const swipeDistance = touchStartY - touchEndY;
+                const threshold = 50;
+
+                if (swipeDistance > threshold) {
+                    // Swipe up - expand
+                    sidebar.classList.add('expanded');
+                    if (mobileHint) mobileHint.classList.add('hidden');
+                } else if (swipeDistance < -threshold) {
+                    // Swipe down - collapse
+                    sidebar.classList.remove('expanded');
+                }
+            }
+
+            // Close sidebar when clicking on map (mobile)
+            view.on("click", function(event) {
+                if (isMobile() && sidebar.classList.contains('expanded')) {
+                    // Only close if not in select mode
+                    if (state.drawMode !== 'select') {
+                        sidebar.classList.remove('expanded');
+                    }
+                }
+            });
+
+            // Handle orientation change
+            window.addEventListener('orientationchange', function() {
+                setTimeout(function() {
+                    if (!isMobile()) {
+                        sidebar.classList.remove('expanded');
+                    }
+                }, 100);
+            });
+
+            // Handle resize
+            window.addEventListener('resize', function() {
+                if (!isMobile()) {
+                    sidebar.classList.remove('expanded');
+                }
             });
 
             // Initialize
