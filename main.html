@@ -248,14 +248,44 @@
             color: white;
         }
 
-        .btn-success:hover {
+        .btn-success:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-danger {
             background: linear-gradient(135deg, var(--accent-danger), #dc2626);
             color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-warning), #d97706);
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-block {
@@ -269,6 +299,11 @@
 
         .btn-group .btn {
             flex: 1;
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 12px;
         }
 
         /* Selection Info Card */
@@ -381,6 +416,7 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             padding: 16px;
+            margin-bottom: 16px;
         }
 
         .preview-header {
@@ -420,6 +456,111 @@
         .preview-table td {
             padding: 8px;
             border-bottom: 1px solid var(--border-color);
+        }
+
+        /* History Panel */
+        .history-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: var(--border-color);
+        }
+
+        .history-item.undone {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .history-item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-item-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent-secondary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        .history-item.undone .history-item-icon {
+            background: var(--accent-danger);
+        }
+
+        .history-item-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-item-title {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .history-item-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .history-item-count {
+            padding: 2px 8px;
+            background: var(--accent-primary);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 13px;
         }
 
         /* Map Container */
@@ -520,9 +661,6 @@
 
         .layer-panel.collapsed .layer-panel-toggle {
             transform: rotate(180deg);
-        }
-
-        .layer-panel.collapsed .layer-panel-toggle {
             display: none;
         }
 
@@ -599,13 +737,6 @@
             width: 20px;
             height: 20px;
             border-radius: 4px;
-        }
-
-        .legend-items {
-            padding: 8px 12px;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-sm);
-            margin-top: 8px;
         }
 
         .legend-item {
@@ -716,6 +847,10 @@
             border-color: var(--accent-danger);
         }
 
+        .toast.warning {
+            border-color: var(--accent-warning);
+        }
+
         .toast-icon {
             width: 28px;
             height: 28px;
@@ -732,6 +867,10 @@
 
         .toast.error .toast-icon {
             background: var(--accent-danger);
+        }
+
+        .toast.warning .toast-icon {
+            background: var(--accent-warning);
         }
 
         @keyframes toastIn {
@@ -826,20 +965,6 @@
             display: flex;
             justify-content: flex-end;
             gap: 12px;
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--bg-tertiary);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         /* Progress Bar */
@@ -946,24 +1071,24 @@
                 </div>
 
                 <div class="section">
-    <div class="section-header">
-        <div class="section-icon">🗺️</div>
-        <span class="section-title">סוג מפת רקע</span>
-    </div>
-    <div class="form-group">
-        <select class="form-select" id="basemapSelect">
-            <option value="gray-vector" selected>אפור</option>
-            <option value="streets-vector">רחובות</option>
-            <option value="satellite">לוויין</option>
-            <option value="hybrid">היברידי</option>
-            <option value="topo-vector">טופוגרפי</option>
-            <option value="osm">OpenStreetMap</option>
-            <option value="dark-gray-vector">אפור כהה</option>
-            <option value="streets-night-vector">לילה</option>
-            <option value="terrain">שטח</option>
-        </select>
-    </div>
-</div>
+                    <div class="section-header">
+                        <div class="section-icon">🗺️</div>
+                        <span class="section-title">סוג מפת רקע</span>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-select" id="basemapSelect">
+                            <option value="gray-vector"selected>אפור</option>
+                            <option value="dark-gray-vector" >אפור כהה</option>
+                            <option value="streets-vector">רחובות</option>
+                            <option value="satellite">לוויין</option>
+                            <option value="hybrid">היברידי</option>
+                            <option value="topo-vector">טופוגרפי</option>
+                            <option value="osm">OpenStreetMap</option>
+                            <option value="streets-night-vector">לילה</option>
+                            <option value="terrain">שטח</option>
+                        </select>
+                    </div>
+                </div>
 
                 <!-- Filters -->
                 <div class="section">
@@ -1079,13 +1204,13 @@
                         </select>
                     </div>
 
-                <div class="form-group">
-                    <label class="form-label">מוקצה</label>
-                    <input type="text" class="form-input" id="taskAssignee" list="assigneeList" placeholder="בחר או הקלד שם מוקצה...">
-                    <datalist id="assigneeList">
-                        <!-- Options will be populated from domain -->
-                    </datalist>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">מוקצה</label>
+                        <input type="text" class="form-input" id="taskAssignee" list="assigneeList" placeholder="בחר או הקלד שם מוקצה...">
+                        <datalist id="assigneeList">
+                            <!-- Options will be populated from domain -->
+                        </datalist>
+                    </div>
                 </div>
 
                 <!-- Time Intervals -->
@@ -1146,6 +1271,39 @@
                             <div class="form-group">
                                 <label class="form-label">תאריך סיום</label>
                                 <input type="date" class="form-input" id="singleEndDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History / Undo-Redo Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">📜</div>
+                        <span class="section-title">היסטוריית פעולות</span>
+                        <span class="section-badge" id="historyCount">0</span>
+                    </div>
+                    
+                    <div class="history-panel">
+                        <div class="history-header">
+                            <div class="history-title">
+                                <span>🔄</span>
+                                <span>בטל/בצע שוב</span>
+                            </div>
+                            <div class="history-actions">
+                                <button class="btn btn-warning btn-sm" id="btnUndo" disabled title="בטל פעולה אחרונה (Ctrl+Z)">
+                                    <span>↶</span>
+                                    <span>בטל</span>
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="btnRedo" disabled title="בצע שוב (Ctrl+Y)">
+                                    <span>↷</span>
+                                    <span>שוב</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <div class="history-empty">
+                                אין פעולות בהיסטוריה
                             </div>
                         </div>
                     </div>
@@ -1299,9 +1457,11 @@
                 merhavOptions: new Set(),
                 gushOptions: new Set(),
                 regionOptions: new Set(),
-                forestOptions: new Set()
+                forestOptions: new Set(),
+                // History for undo/redo
+                history: [],
+                historyIndex: -1
             };
-
 
             // Layer references
             let enclosuresLayerView = null;
@@ -1337,10 +1497,10 @@
             });
 
             // Initialize Map with layers
-                const map = new Map({
-                    basemap: "gray-vector",
-                    layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
-                });
+            const map = new Map({
+                basemap: "gray-vector",
+                layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
+            });
 
             const view = new MapView({
                 container: "viewDiv",
@@ -1352,8 +1512,246 @@
                 }
             });
 
+            // =====================================================
+            // HISTORY / UNDO-REDO SYSTEM
+            // =====================================================
+            
+            // Add action to history
+            function addToHistory(action) {
+                // Remove any redo items (actions after current index)
+                if (state.historyIndex < state.history.length - 1) {
+                    state.history = state.history.slice(0, state.historyIndex + 1);
+                }
+                
+                // Add new action
+                state.history.push({
+                    ...action,
+                    timestamp: new Date(),
+                    undone: false
+                });
+                state.historyIndex = state.history.length - 1;
+                
+                updateHistoryUI();
+                console.log("Added to history:", action);
+            }
 
-            // Layer Panel functionality
+            // Undo last action
+            async function undoLastAction() {
+                if (state.historyIndex < 0) {
+                    showToast("אין פעולות לביטול", "warning");
+                    return;
+                }
+
+                const action = state.history[state.historyIndex];
+                
+                if (action.undone) {
+                    showToast("פעולה זו כבר בוטלה", "warning");
+                    return;
+                }
+                
+                if (action.type === 'create_tasks') {
+                    // Delete the created tasks
+                    try {
+                        updateStatus("מבטל יצירת משימות...");
+                        
+                        const deleteFeatures = action.createdOIDs.map(oid => ({
+                            objectId: oid
+                        }));
+
+                        const batchSize = 100;
+                        let deletedCount = 0;
+
+                        for (let i = 0; i < deleteFeatures.length; i += batchSize) {
+                            const batch = deleteFeatures.slice(i, i + batchSize);
+                            const result = await tasksLayer.applyEdits({
+                                deleteFeatures: batch
+                            });
+                            
+                            if (result.deleteFeatureResults) {
+                                deletedCount += result.deleteFeatureResults.filter(r => !r.error).length;
+                            }
+                        }
+
+                        action.undone = true;
+                        state.historyIndex--;
+                        
+                        tasksLayer.refresh();
+                        updateLayerCounts();
+                        updateHistoryUI();
+                        
+                        showToast(`בוטלו ${deletedCount} משימות`, "success");
+                        updateStatus(`בוטלו ${deletedCount} משימות`);
+                        
+                    } catch (error) {
+                        console.error("Error undoing:", error);
+                        showToast("שגיאה בביטול הפעולה: " + error.message, "error");
+                    }
+                }
+            }
+
+            // Redo action
+            async function redoAction() {
+                if (state.historyIndex >= state.history.length - 1) {
+                    showToast("אין פעולות לביצוע מחדש", "warning");
+                    return;
+                }
+
+                const nextIndex = state.historyIndex + 1;
+                const action = state.history[nextIndex];
+                
+                if (!action.undone) {
+                    showToast("פעולה זו לא בוטלה", "warning");
+                    return;
+                }
+                
+                if (action.type === 'create_tasks') {
+                    // Recreate the tasks
+                    try {
+                        updateStatus("מבצע מחדש יצירת משימות...");
+                        
+                        const batchSize = 100;
+                        let createdCount = 0;
+                        const newOIDs = [];
+
+                        for (let i = 0; i < action.taskData.length; i += batchSize) {
+                            const batch = action.taskData.slice(i, i + batchSize);
+                            const result = await tasksLayer.applyEdits({
+                                addFeatures: batch.map(data => new Graphic(data))
+                            });
+                            
+                            if (result.addFeatureResults) {
+                                result.addFeatureResults.forEach(r => {
+                                    if (!r.error) {
+                                        newOIDs.push(r.objectId);
+                                        createdCount++;
+                                    }
+                                });
+                            }
+                        }
+
+                        // Update the action with new OIDs
+                        action.createdOIDs = newOIDs;
+                        action.undone = false;
+                        state.historyIndex = nextIndex;
+                        
+                        tasksLayer.refresh();
+                        updateLayerCounts();
+                        updateHistoryUI();
+                        
+                        showToast(`נוצרו מחדש ${createdCount} משימות`, "success");
+                        updateStatus(`נוצרו מחדש ${createdCount} משימות`);
+                        
+                    } catch (error) {
+                        console.error("Error redoing:", error);
+                        showToast("שגיאה בביצוע מחדש: " + error.message, "error");
+                    }
+                }
+            }
+
+            // Update history UI
+            function updateHistoryUI() {
+                const historyList = document.getElementById('historyList');
+                const historyCount = document.getElementById('historyCount');
+                const btnUndo = document.getElementById('btnUndo');
+                const btnRedo = document.getElementById('btnRedo');
+
+                // Update count
+                historyCount.textContent = state.history.length;
+
+                // Update undo button - can undo if there's a non-undone action at current index
+                const canUndo = state.historyIndex >= 0 && !state.history[state.historyIndex]?.undone;
+                btnUndo.disabled = !canUndo;
+                
+                // Update redo button - can redo if there's an undone action after current index
+                const canRedo = state.historyIndex < state.history.length - 1 && state.history[state.historyIndex + 1]?.undone;
+                btnRedo.disabled = !canRedo;
+
+                // Update list
+                if (state.history.length === 0) {
+                    historyList.innerHTML = '<div class="history-empty">אין פעולות בהיסטוריה</div>';
+                    return;
+                }
+
+                historyList.innerHTML = state.history.map((action, idx) => {
+                    const time = action.timestamp.toLocaleTimeString('he-IL', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    const isUndone = action.undone;
+                    
+                    return `
+                        <div class="history-item ${isUndone ? 'undone' : ''}" data-index="${idx}">
+                            <div class="history-item-info">
+                                <div class="history-item-icon">${isUndone ? '↶' : '✓'}</div>
+                                <div class="history-item-details">
+                                    <span class="history-item-title">${action.description}</span>
+                                    <span class="history-item-time">${time}</span>
+                                </div>
+                            </div>
+                            <span class="history-item-count">${action.count} משימות</span>
+                        </div>
+                    `;
+                }).reverse().join('');
+            }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+Z for undo
+                if (e.ctrlKey && e.key === 'z') {
+                    e.preventDefault();
+                    undoLastAction();
+                }
+                // Ctrl+Y for redo
+                if (e.ctrlKey && e.key === 'y') {
+                    e.preventDefault();
+                    redoAction();
+                }
+            });
+
+            // Button event listeners
+            document.getElementById('btnUndo').addEventListener('click', undoLastAction);
+            document.getElementById('btnRedo').addEventListener('click', redoAction);
+
+            // =====================================================
+            // ASSIGNEE DOMAIN LOADING
+            // =====================================================
+            
+            async function loadAssigneeDomain() {
+                try {
+                    await tasksLayer.when();
+                    
+                    const assigneeField = tasksLayer.fields.find(f => f.name === 'esritask_assignee');
+                    
+                    if (assigneeField && assigneeField.domain && assigneeField.domain.codedValues) {
+                        const datalist = document.getElementById('assigneeList');
+                        datalist.innerHTML = '';
+                        
+                        assigneeField.domain.codedValues.forEach(cv => {
+                            const option = document.createElement('option');
+                            option.value = cv.name || cv.code;
+                            datalist.appendChild(option);
+                        });
+                        
+                        console.log("Loaded assignee domain values:", assigneeField.domain.codedValues.length);
+                    } else {
+                        console.log("No domain found for esritask_assignee field, checking all fields...");
+                        
+                        // Log all fields with domains for debugging
+                        tasksLayer.fields.forEach(field => {
+                            if (field.domain) {
+                                console.log(`Field ${field.name} has domain:`, field.domain);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.warn("Could not load assignee domain:", error);
+                }
+            }
+
+            // =====================================================
+            // LAYER PANEL & LEGEND
+            // =====================================================
+
             function initLayerPanel() {
                 const panelContent = document.getElementById('layerPanelContent');
                 const layers = [
@@ -1375,7 +1773,6 @@
                     `;
                 });
 
-                // Add legend section
                 html += `
                     <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
                         <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">מקרא</div>
@@ -1385,7 +1782,6 @@
 
                 panelContent.innerHTML = html;
 
-                // Add click handlers for layer toggles
                 document.querySelectorAll('.layer-toggle').forEach(toggle => {
                     toggle.addEventListener('click', function() {
                         const layerId = this.dataset.layerId;
@@ -1397,18 +1793,15 @@
                     });
                 });
 
-                // Panel collapse toggle
                 document.getElementById('layerPanelHeader').addEventListener('click', function() {
                     document.getElementById('layerPanel').classList.toggle('collapsed');
                 });
 
-                // Update layer counts
                 updateLayerCounts();
             }
 
             async function updateLayerCounts() {
                 try {
-                    // Count enclosures
                     const encQuery = enclosuresLayer.createQuery();
                     encQuery.where = "1=1";
                     encQuery.returnGeometry = false;
@@ -1416,7 +1809,6 @@
                     const el0 = document.getElementById('layerCount0');
                     if (el0) el0.textContent = `${encResult} יישויות`;
 
-                    // Count tasks
                     const taskQuery = tasksLayer.createQuery();
                     taskQuery.where = "1=1";
                     taskQuery.returnGeometry = false;
@@ -1434,7 +1826,6 @@
 
                 let html = '';
 
-                // Enclosures legend
                 if (enclosuresLayer.renderer) {
                     const renderer = enclosuresLayer.renderer;
                     if (renderer.type === 'simple') {
@@ -1464,7 +1855,6 @@
                     `;
                 }
 
-                // Tasks legend
                 html += `
                     <div class="legend-item" style="margin-top: 8px;">
                         <div class="legend-symbol" style="background: #10b981; border-radius: 50%;"></div>
@@ -1472,7 +1862,6 @@
                     </div>
                 `;
 
-                // Selection legend
                 html += `
                     <div class="legend-item">
                         <div class="legend-symbol" style="background: rgba(245,158,11,0.5); border: 2px solid #f59e0b;"></div>
@@ -1483,13 +1872,9 @@
                 legendContent.innerHTML = html;
             }
 
-
-        
-
-            // Selected features highlight symbol - will be set based on geometry type
+            // Selected features highlight symbol
             let selectedSymbol = null;
 
-            // Update this function to handle both points and polygons
             function updateSelectionEffect() {
                 if (!enclosuresLayerView) {
                     console.log("No enclosuresLayerView yet");
@@ -1509,16 +1894,13 @@
                 const where = oidField + " IN (" + ids.join(",") + ")";
 
                 console.log("Highlighting features:", ids);
-                console.log("Geometry type:", enclosuresLayer.geometryType);
 
-                // Apply visual effect
                 enclosuresLayerView.effect = {
                     filter: { where: where },
                     includedEffect: "bloom(1.5) drop-shadow(3px, 3px, 10px, #f59e0b)",
                     excludedEffect: "opacity(40%)"
                 };
 
-                // Set symbol based on geometry type
                 if (enclosuresLayer.geometryType === "point" || enclosuresLayer.geometryType === "multipoint") {
                     selectedSymbol = {
                         type: "simple-marker",
@@ -1540,19 +1922,14 @@
                     };
                 }
 
-                // Add highlight graphics
                 state.selectedFeatures.forEach(f => {
                     const graphic = new Graphic({
                         geometry: f.geometry,
                         symbol: selectedSymbol
                     });
                     selectionGraphicsLayer.add(graphic);
-                    console.log("Added highlight graphic for feature");
                 });
-
-                console.log("Total graphics in selection layer:", selectionGraphicsLayer.graphics.length);
             }
-
 
             // Load filter options
             async function loadFilterOptions() {
@@ -1572,7 +1949,6 @@
                         if (f.attributes.ForestName) state.forestOptions.add(f.attributes.ForestName);
                     });
 
-                    // Populate dropdowns
                     const merhavSelect = document.getElementById('filterMerhav');
                     const gushSelect = document.getElementById('filterGush');
                     const regionSelect = document.getElementById('filterRegion');
@@ -1638,7 +2014,6 @@
                     updatePreview();
                 }
 
-                // Update selection effect on map
                 updateSelectionEffect();
             }
 
@@ -1662,7 +2037,6 @@
                 const tasks = generateTasksPreview();
                 document.getElementById('previewCount').textContent = `${tasks.length} משימות`;
 
-                // Show only first 10 in preview
                 const previewTasks = tasks.slice(0, 10);
                 tbody.innerHTML = previewTasks.map(t => `
                     <tr>
@@ -1700,7 +2074,6 @@
                             const taskStart = new Date(startDate);
                             const taskEnd = new Date(startDate);
 
-                            // Calculate start date
                             if (intervalUnit === 'day') {
                                 taskStart.setDate(taskStart.getDate() + i);
                             } else if (intervalUnit === 'week') {
@@ -1709,7 +2082,6 @@
                                 taskStart.setMonth(taskStart.getMonth() + i);
                             }
 
-                            // Calculate end date
                             taskEnd.setTime(taskStart.getTime());
                             if (taskDurationUnit === 'day') {
                                 taskEnd.setDate(taskEnd.getDate() + taskDuration);
@@ -1758,12 +2130,6 @@
                 const region = document.getElementById('filterRegion').value;
                 const forest = document.getElementById('filterForest').value;
 
-                let whereClause = "1=1";
-                if (merhav) whereClause += ` AND MerhavName = '${merhav}'`;
-                if (gush) whereClause += ` AND GushName = '${gush}'`;
-                if (region) whereClause += ` AND RegionName = '${region}'`;
-                if (forest) whereClause += ` AND ForestName = '${forest}'`;
-
                 const filtered = state.enclosuresData.filter(f => {
                     let match = true;
                     if (merhav && f.attributes.MerhavName !== merhav) match = false;
@@ -1779,7 +2145,6 @@
                 if (filtered.length > 0) {
                     showToast(`נבחרו ${filtered.length} מכלאות`, "success");
                     
-                    // Zoom to selected features
                     const extent = filtered.reduce((ext, f) => {
                         if (!ext) return f.geometry.extent;
                         return ext.union(f.geometry.extent);
@@ -1804,7 +2169,6 @@
                 updateSelectionDisplay();
             });
 
-            // Clear all selection (bottom button)
             document.getElementById('btnClearAllSelection').addEventListener('click', () => {
                 state.selectedFeatures = [];
                 updateSelectionDisplay();
@@ -1845,7 +2209,6 @@
                 sketchViewModel.on("create", async (event) => {
                     if (event.state === "complete") {
                         const geometry = event.graphic.geometry;
-                        console.log("Sketch complete, geometry:", geometry);
                         await selectByGeometry(geometry);
                         sketchGraphicsLayer.removeAll();
                         stopDrawing();
@@ -1858,7 +2221,6 @@
                 state.drawMode = mode;
                 document.getElementById('drawInstructions').classList.add('visible');
                 
-                // Deactivate other buttons
                 document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
                 
                 if (mode === 'select') {
@@ -1897,21 +2259,18 @@
                 view.goTo({ center: [35.2, 31.5], zoom: 8 });
             });
 
-            // Select by geometry - FIXED VERSION using spatial query
+            // Select by geometry
             async function selectByGeometry(geometry) {
                 try {
                     updateStatus("מחפש מכלאות באזור שנבחר...");
                     
-                    // Query the layer directly with the geometry
                     const query = enclosuresLayer.createQuery();
                     query.geometry = geometry;
                     query.spatialRelationship = "intersects";
                     query.outFields = ["*"];
                     query.returnGeometry = true;
 
-                    console.log("Querying with geometry:", geometry);
                     const result = await enclosuresLayer.queryFeatures(query);
-                    console.log("Query result:", result.features.length, "features");
 
                     if (result.features.length === 0) {
                         showToast("לא נמצאו מכלאות באזור שנבחר", "error");
@@ -1919,7 +2278,6 @@
                         return;
                     }
 
-                    // Add to selection (avoiding duplicates)
                     const oidField = enclosuresLayer.objectIdField;
                     let addedCount = 0;
 
@@ -1970,23 +2328,21 @@
                 const taskPriority = parseInt(document.getElementById('taskPriority').value);
                 const taskAssignee = document.getElementById('taskAssignee').value;
 
-                // Show progress
                 document.getElementById('modalFooter').style.display = 'none';
                 document.getElementById('progressBar').style.display = 'block';
                 document.getElementById('progressText').style.display = 'block';
 
                 const edits = [];
+                const taskDataForHistory = [];
 
                 for (let i = 0; i < tasks.length; i++) {
                     const task = tasks[i];
                     let pointGeom = task.feature.geometry;
 
-                    // If geometry is polygon/polyline, get centroid
                     if (pointGeom.type !== "point") {
                         pointGeom = geometryEngine.centroid(pointGeom);
                     }
 
-                    // Build attributes with correct domain codes
                     const attributes = {
                         esritask_type: taskType,
                         esritask_status: taskStatus,
@@ -1997,44 +2353,39 @@
                         RelatedLayerID: enclosuresLayer.portalItem.id
                     };
 
-                    // Add assignee if provided
                     if (taskAssignee && taskAssignee.trim()) {
                         attributes.esritask_assignee = taskAssignee.trim();
                     }
 
-                    edits.push({
+                    const editData = {
                         geometry: pointGeom,
                         attributes: attributes
+                    };
+
+                    edits.push(editData);
+                    taskDataForHistory.push({
+                        geometry: pointGeom.toJSON(),
+                        attributes: { ...attributes }
                     });
 
-                    // Update progress
                     const progress = Math.round(((i + 1) / tasks.length) * 50);
                     document.getElementById('progressFill').style.width = `${progress}%`;
                     document.getElementById('progressPercent').textContent = progress;
                 }
 
-                console.log("Creating tasks with edits:", edits);
-                console.log("Sample attributes:", edits[0]?.attributes);
-                console.log("Sample geometry:", edits[0]?.geometry);
-                console.log("Tasks layer spatial reference:", tasksLayer.spatialReference);
-
                 try {
-                    // Apply edits in batches
                     const batchSize = 100;
                     let completed = 0;
                     let totalSuccess = 0;
                     let totalFail = 0;
+                    const createdOIDs = [];
 
                     for (let i = 0; i < edits.length; i += batchSize) {
                         const batch = edits.slice(i, i + batchSize);
                         
-                        console.log("Sending batch of", batch.length, "features");
-                        
                         const result = await tasksLayer.applyEdits({
                             addFeatures: batch.map(e => new Graphic(e))
                         });
-
-                        console.log("Batch result:", result);
 
                         if (result.addFeatureResults) {
                             result.addFeatureResults.forEach((r, idx) => {
@@ -2043,6 +2394,7 @@
                                     totalFail++;
                                 } else {
                                     totalSuccess++;
+                                    createdOIDs.push(r.objectId);
                                 }
                             });
                         }
@@ -2060,18 +2412,26 @@
                     } else {
                         showToast(`נוצרו ${totalSuccess} משימות בהצלחה!`, "success");
                     }
+
+                    // Add to history for undo
+                    if (totalSuccess > 0) {
+                        addToHistory({
+                            type: 'create_tasks',
+                            description: `יצירת משימות`,
+                            count: totalSuccess,
+                            createdOIDs: createdOIDs,
+                            taskData: taskDataForHistory.slice(0, totalSuccess)
+                        });
+                    }
                     
-                    // Clear selection
                     state.selectedFeatures = [];
                     updateSelectionDisplay();
 
-                    // Refresh tasks layer and update counts
                     tasksLayer.refresh();
                     updateLayerCounts();
 
                 } catch (error) {
                     console.error("Error creating tasks:", error);
-                    console.error("Error details:", JSON.stringify(error, null, 2));
                     closeModal();
                     showToast("שגיאה ביצירת המשימות: " + error.message, "error");
                 }
@@ -2082,8 +2442,13 @@
                 const container = document.getElementById('toastContainer');
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
+                
+                let icon = '✓';
+                if (type === 'error') icon = '✕';
+                if (type === 'warning') icon = '⚠';
+                
                 toast.innerHTML = `
-                    <div class="toast-icon">${type === 'success' ? '✓' : '✕'}</div>
+                    <div class="toast-icon">${icon}</div>
                     <span>${message}</span>
                 `;
                 container.appendChild(toast);
@@ -2108,12 +2473,17 @@
             document.getElementById('singleStartDate').value = today.toISOString().split('T')[0];
             document.getElementById('singleEndDate').value = nextMonth.toISOString().split('T')[0];
 
+            // Basemap change
+            document.getElementById('basemapSelect').addEventListener('change', function(e) {
+                map.basemap = e.target.value;
+                showToast("מפת רקע שונתה", "success");
+            });
+
             // Initialize
             view.when().then(function() {
                 map.reorder(selectionGraphicsLayer, map.layers.length - 1);
                 updateStatus("מפה נטענה, ממתין לשכבות...");
                 
-                // Wait for layers to load
                 reactiveUtils.whenOnce(() => enclosuresLayer.loaded && tasksLayer.loaded)
                     .then(function() {
                         updateStatus("שכבות נטענו בהצלחה");
@@ -2121,36 +2491,26 @@
                         console.log("Enclosures layer object ID field:", enclosuresLayer.objectIdField);
                         console.log("Enclosures layer geometry type:", enclosuresLayer.geometryType);
                         
-                        // Log tasks layer info for debugging
                         console.log("=== Tasks Layer Info ===");
                         console.log("Tasks layer geometry type:", tasksLayer.geometryType);
                         console.log("Tasks layer object ID field:", tasksLayer.objectIdField);
-                        console.log("Tasks layer capabilities:", tasksLayer.capabilities);
-                        console.log("Tasks layer editable:", tasksLayer.editingEnabled);
                         
-                        // Log all fields
                         console.log("Tasks layer fields:");
                         tasksLayer.fields.forEach(field => {
                             console.log(`  - ${field.name} (${field.type})${field.nullable ? '' : ' [REQUIRED]'}${field.domain ? ' [DOMAIN]' : ''}`);
                         });
                         
-                        // Check edit capabilities
-                        if (tasksLayer.capabilities && tasksLayer.capabilities.editing) {
-                            console.log("Editing capabilities:", tasksLayer.capabilities.editing);
-                        }
-                        
                         loadFilterOptions();
                         initLayerPanel();
                         updateLegend();
-                        loadAssigneeDomain(); 
+                        loadAssigneeDomain();
+                        updateHistoryUI();
                     });
 
-                // Get LayerView for enclosures layer
                 view.whenLayerView(enclosuresLayer).then(function(lv) {
                     enclosuresLayerView = lv;
                     console.log("LayerView for enclosures ready");
 
-                    // Click handler for selecting enclosures
                     view.on("click", function(event) {
                         if (state.drawMode !== 'select') return;
 
@@ -2165,17 +2525,14 @@
                             const oidField = enclosuresLayer.objectIdField;
                             const oid = graphic.attributes[oidField];
 
-                            // Check if already selected
                             const existingIndex = state.selectedFeatures.findIndex(f => 
                                 f.attributes[oidField] === oid
                             );
 
                             if (existingIndex >= 0) {
-                                // Remove from selection
                                 state.selectedFeatures.splice(existingIndex, 1);
                                 showToast("מכלאה הוסרה מהבחירה", "success");
                             } else {
-                                // Add to selection
                                 state.selectedFeatures.push(graphic);
                                 showToast("מכלאה נוספה לבחירה", "success");
                             }
@@ -2189,44 +2546,7 @@
                 showToast("שגיאה בטעינת המפה: " + err, "error");
                 updateStatus("שגיאה בטעינת המפה");
             });
-
-            document.getElementById('basemapSelect').addEventListener('change', function(e) {
-            map.basemap = e.target.value;
-            showToast("מפת רקע שונתה", "success");
         });
-
-        // Function to load assignee domain values
-        async function loadAssigneeDomain() {
-            try {
-                // Wait for tasks layer to load
-                await tasksLayer.when();
-                
-                const assigneeField = tasksLayer.fields.find(f => f.name === 'esritask_assignee');
-                
-                if (assigneeField && assigneeField.domain && assigneeField.domain.codedValues) {
-                    const datalist = document.getElementById('assigneeList');
-                    datalist.innerHTML = ''; // Clear existing options
-                    
-                    assigneeField.domain.codedValues.forEach(cv => {
-                        const option = document.createElement('option');
-                        option.value = cv.name || cv.code;
-                        option.textContent = cv.name || cv.code;
-                        datalist.appendChild(option);
-                    });
-                    
-                    console.log("Loaded assignee domain values:", assigneeField.domain.codedValues.length);
-                } else {
-                    console.log("No domain found for esritask_assignee field");
-                }
-            } catch (error) {
-                console.warn("Could not load assignee domain:", error);
-            }
-        }
-
-
-
-                });
-
     </script>
 </body>
 </html>
