@@ -945,6 +945,26 @@
                     </div>
                 </div>
 
+                <div class="section">
+    <div class="section-header">
+        <div class="section-icon">🗺️</div>
+        <span class="section-title">סוג מפת רקע</span>
+    </div>
+    <div class="form-group">
+        <select class="form-select" id="basemapSelect">
+            <option value="gray-vector" selected>אפור</option>
+            <option value="streets-vector">רחובות</option>
+            <option value="satellite">לוויין</option>
+            <option value="hybrid">היברידי</option>
+            <option value="topo-vector">טופוגרפי</option>
+            <option value="osm">OpenStreetMap</option>
+            <option value="dark-gray-vector">אפור כהה</option>
+            <option value="streets-night-vector">לילה</option>
+            <option value="terrain">שטח</option>
+        </select>
+    </div>
+</div>
+
                 <!-- Filters -->
                 <div class="section">
                     <div class="section-header">
@@ -1059,10 +1079,13 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">מוקצה</label>
-                        <input type="text" class="form-input" id="taskAssignee" placeholder="שם המוקצה...">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">מוקצה</label>
+                    <input type="text" class="form-input" id="taskAssignee" list="assigneeList" placeholder="בחר או הקלד שם מוקצה...">
+                    <datalist id="assigneeList">
+                        <!-- Options will be populated from domain -->
+                    </datalist>
+                </div>
                 </div>
 
                 <!-- Time Intervals -->
@@ -1279,6 +1302,7 @@
                 forestOptions: new Set()
             };
 
+
             // Layer references
             let enclosuresLayerView = null;
 
@@ -1313,10 +1337,10 @@
             });
 
             // Initialize Map with layers
-            const map = new Map({
-                basemap: "streets-vector",
-                layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
-            });
+                const map = new Map({
+                    basemap: "gray-vector",
+                    layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
+                });
 
             const view = new MapView({
                 container: "viewDiv",
@@ -1328,15 +1352,6 @@
                 }
             });
 
-            // Selected features highlight symbol
-            const selectedSymbol = {
-                type: "simple-fill",
-                color: [245, 158, 11, 0.5],
-                outline: {
-                    color: [245, 158, 11, 1],
-                    width: 3
-                }
-            };
 
             // Layer Panel functionality
             function initLayerPanel() {
@@ -1468,9 +1483,16 @@
                 legendContent.innerHTML = html;
             }
 
-            // Selection effect function
+
+        
+
+            // Selected features highlight symbol - will be set based on geometry type
+            let selectedSymbol = null;
+
+            // Update this function to handle both points and polygons
             function updateSelectionEffect() {
                 if (!enclosuresLayerView) {
+                    console.log("No enclosuresLayerView yet");
                     return;
                 }
 
@@ -1486,21 +1508,51 @@
                 const ids = state.selectedFeatures.map(f => f.attributes[oidField]);
                 const where = oidField + " IN (" + ids.join(",") + ")";
 
+                console.log("Highlighting features:", ids);
+                console.log("Geometry type:", enclosuresLayer.geometryType);
+
+                // Apply visual effect
                 enclosuresLayerView.effect = {
                     filter: { where: where },
-                    includedEffect: "bloom(1.2) drop-shadow(0px, 0px, 6px)",
-                    excludedEffect: "opacity(50%)"
+                    includedEffect: "bloom(1.5) drop-shadow(3px, 3px, 10px, #f59e0b)",
+                    excludedEffect: "opacity(40%)"
                 };
 
-                // Also add graphics for visual highlight
+                // Set symbol based on geometry type
+                if (enclosuresLayer.geometryType === "point" || enclosuresLayer.geometryType === "multipoint") {
+                    selectedSymbol = {
+                        type: "simple-marker",
+                        color: [245, 158, 11, 0.7],
+                        size: 18,
+                        outline: {
+                            color: [245, 158, 11, 1],
+                            width: 3
+                        }
+                    };
+                } else {
+                    selectedSymbol = {
+                        type: "simple-fill",
+                        color: [245, 158, 11, 0.4],
+                        outline: {
+                            color: [245, 158, 11, 1],
+                            width: 4
+                        }
+                    };
+                }
+
+                // Add highlight graphics
                 state.selectedFeatures.forEach(f => {
                     const graphic = new Graphic({
                         geometry: f.geometry,
                         symbol: selectedSymbol
                     });
                     selectionGraphicsLayer.add(graphic);
+                    console.log("Added highlight graphic for feature");
                 });
+
+                console.log("Total graphics in selection layer:", selectionGraphicsLayer.graphics.length);
             }
+
 
             // Load filter options
             async function loadFilterOptions() {
@@ -1940,7 +1992,9 @@
                         esritask_status: taskStatus,
                         esritask_priority: taskPriority,
                         esritask_duedate: task.endDate.getTime(),
-                        ParentFeatureGlobalID: task.feature.attributes.GlobalID
+                        ParentFeatureGlobalID: task.feature.attributes.GlobalID,
+                        RelatedLayerName: enclosuresLayer.title,
+                        RelatedLayerID: enclosuresLayer.portalItem.id
                     };
 
                     // Add assignee if provided
@@ -2056,6 +2110,7 @@
 
             // Initialize
             view.when().then(function() {
+                map.reorder(selectionGraphicsLayer, map.layers.length - 1);
                 updateStatus("מפה נטענה, ממתין לשכבות...");
                 
                 // Wait for layers to load
@@ -2087,6 +2142,7 @@
                         loadFilterOptions();
                         initLayerPanel();
                         updateLegend();
+                        loadAssigneeDomain(); 
                     });
 
                 // Get LayerView for enclosures layer
@@ -2133,7 +2189,44 @@
                 showToast("שגיאה בטעינת המפה: " + err, "error");
                 updateStatus("שגיאה בטעינת המפה");
             });
+
+            document.getElementById('basemapSelect').addEventListener('change', function(e) {
+            map.basemap = e.target.value;
+            showToast("מפת רקע שונתה", "success");
         });
+
+        // Function to load assignee domain values
+        async function loadAssigneeDomain() {
+            try {
+                // Wait for tasks layer to load
+                await tasksLayer.when();
+                
+                const assigneeField = tasksLayer.fields.find(f => f.name === 'esritask_assignee');
+                
+                if (assigneeField && assigneeField.domain && assigneeField.domain.codedValues) {
+                    const datalist = document.getElementById('assigneeList');
+                    datalist.innerHTML = ''; // Clear existing options
+                    
+                    assigneeField.domain.codedValues.forEach(cv => {
+                        const option = document.createElement('option');
+                        option.value = cv.name || cv.code;
+                        option.textContent = cv.name || cv.code;
+                        datalist.appendChild(option);
+                    });
+                    
+                    console.log("Loaded assignee domain values:", assigneeField.domain.codedValues.length);
+                } else {
+                    console.log("No domain found for esritask_assignee field");
+                }
+            } catch (error) {
+                console.warn("Could not load assignee domain:", error);
+            }
+        }
+
+
+
+                });
+
     </script>
 </body>
 </html>
