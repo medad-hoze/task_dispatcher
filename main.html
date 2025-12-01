@@ -1932,50 +1932,143 @@
             }
 
             // Load filter options
-            async function loadFilterOptions() {
-                try {
-                    const query = enclosuresLayer.createQuery();
-                    query.where = "1=1";
-                    query.outFields = ["MerhavName", "GushName", "RegionName", "ForestName", "GlobalID", "OBJECTID"];
-                    query.returnGeometry = true;
 
-                    const result = await enclosuresLayer.queryFeatures(query);
-                    state.enclosuresData = result.features;
+// Load filter options - REPLACE the existing function
+async function loadFilterOptions() {
+    try {
+        const query = enclosuresLayer.createQuery();
+        query.where = "1=1";
+        query.outFields = ["MerhavName", "GushName", "RegionName", "ForestName", "GlobalID", "OBJECTID"];
+        query.returnGeometry = true;
 
-                    result.features.forEach(f => {
-                        if (f.attributes.MerhavName) state.merhavOptions.add(f.attributes.MerhavName);
-                        if (f.attributes.GushName) state.gushOptions.add(f.attributes.GushName);
-                        if (f.attributes.RegionName) state.regionOptions.add(f.attributes.RegionName);
-                        if (f.attributes.ForestName) state.forestOptions.add(f.attributes.ForestName);
-                    });
+        const result = await enclosuresLayer.queryFeatures(query);
+        state.enclosuresData = result.features;
 
-                    const merhavSelect = document.getElementById('filterMerhav');
-                    const gushSelect = document.getElementById('filterGush');
-                    const regionSelect = document.getElementById('filterRegion');
-                    const forestSelect = document.getElementById('filterForest');
+        // Initial population of Merhav (top level)
+        result.features.forEach(f => {
+            if (f.attributes.MerhavName) state.merhavOptions.add(f.attributes.MerhavName);
+        });
 
-                    [...state.merhavOptions].sort().forEach(opt => {
-                        merhavSelect.add(new Option(opt, opt));
-                    });
+        const merhavSelect = document.getElementById('filterMerhav');
+        [...state.merhavOptions].sort().forEach(opt => {
+            merhavSelect.add(new Option(opt, opt));
+        });
 
-                    [...state.gushOptions].sort().forEach(opt => {
-                        gushSelect.add(new Option(opt, opt));
-                    });
+        // Initially populate all other dropdowns based on no filter
+        updateCascadingFilters();
 
-                    [...state.regionOptions].sort().forEach(opt => {
-                        regionSelect.add(new Option(opt, opt));
-                    });
+        updateStatus(`נטענו ${result.features.length} מכלאות`);
+    } catch (error) {
+        console.error("Error loading filter options:", error);
+        showToast("שגיאה בטעינת הנתונים", "error");
+    }
+}
 
-                    [...state.forestOptions].sort().forEach(opt => {
-                        forestSelect.add(new Option(opt, opt));
-                    });
+        // ADD this new function for cascading filter logic
+        function updateCascadingFilters() {
+            const merhav = document.getElementById('filterMerhav').value;
+            const region = document.getElementById('filterRegion').value;
+            const gush = document.getElementById('filterGush').value;
 
-                    updateStatus(`נטענו ${result.features.length} מכלאות`);
-                } catch (error) {
-                    console.error("Error loading filter options:", error);
-                    showToast("שגיאה בטעינת הנתונים", "error");
-                }
+            // Filter data based on current selections
+            let filteredData = [...state.enclosuresData];
+
+            // Apply מרחב filter
+            if (merhav) {
+                filteredData = filteredData.filter(f => f.attributes.MerhavName === merhav);
             }
+
+            // Get available regions from filtered data
+            const availableRegions = new Set();
+            filteredData.forEach(f => {
+                if (f.attributes.RegionName) availableRegions.add(f.attributes.RegionName);
+            });
+
+            // Update Region dropdown
+            const regionSelect = document.getElementById('filterRegion');
+            const currentRegion = regionSelect.value;
+            regionSelect.innerHTML = '<option value="">הכל</option>';
+            [...availableRegions].sort().forEach(opt => {
+                regionSelect.add(new Option(opt, opt));
+            });
+            // Restore selection if still valid
+            if (availableRegions.has(currentRegion)) {
+                regionSelect.value = currentRegion;
+            }
+
+            // Apply אזור filter for next levels
+            if (regionSelect.value) {
+                filteredData = filteredData.filter(f => f.attributes.RegionName === regionSelect.value);
+            }
+
+            // Get available Gush from filtered data
+            const availableGush = new Set();
+            filteredData.forEach(f => {
+                if (f.attributes.GushName) availableGush.add(f.attributes.GushName);
+            });
+
+            // Update Gush dropdown
+            const gushSelect = document.getElementById('filterGush');
+            const currentGush = gushSelect.value;
+            gushSelect.innerHTML = '<option value="">הכל</option>';
+            [...availableGush].sort().forEach(opt => {
+                gushSelect.add(new Option(opt, opt));
+            });
+            // Restore selection if still valid
+            if (availableGush.has(currentGush)) {
+                gushSelect.value = currentGush;
+            }
+
+            // Apply גוש filter for next level
+            if (gushSelect.value) {
+                filteredData = filteredData.filter(f => f.attributes.GushName === gushSelect.value);
+            }
+
+            // Get available Forests from filtered data
+            const availableForests = new Set();
+            filteredData.forEach(f => {
+                if (f.attributes.ForestName) availableForests.add(f.attributes.ForestName);
+            });
+
+            // Update Forest dropdown
+            const forestSelect = document.getElementById('filterForest');
+            const currentForest = forestSelect.value;
+            forestSelect.innerHTML = '<option value="">הכל</option>';
+            [...availableForests].sort().forEach(opt => {
+                forestSelect.add(new Option(opt, opt));
+            });
+            // Restore selection if still valid
+            if (availableForests.has(currentForest)) {
+                forestSelect.value = currentForest;
+            }
+        }
+
+        // ADD event listeners for cascading filters - add this after the existing filter event listeners
+        document.getElementById('filterMerhav').addEventListener('change', function() {
+            // Reset child filters when parent changes
+            document.getElementById('filterRegion').value = '';
+            document.getElementById('filterGush').value = '';
+            document.getElementById('filterForest').value = '';
+            updateCascadingFilters();
+        });
+
+        document.getElementById('filterRegion').addEventListener('change', function() {
+            // Reset child filters when parent changes
+            document.getElementById('filterGush').value = '';
+            document.getElementById('filterForest').value = '';
+            updateCascadingFilters();
+        });
+
+        document.getElementById('filterGush').addEventListener('change', function() {
+            // Reset child filter when parent changes
+            document.getElementById('filterForest').value = '';
+            updateCascadingFilters();
+        });
+
+        document.getElementById('filterForest').addEventListener('change', function() {
+            updateCascadingFilters();
+        });
+
 
             // Update selection display
             function updateSelectionDisplay() {
@@ -2158,9 +2251,10 @@
             // Clear filter
             document.getElementById('btnClearFilter').addEventListener('click', () => {
                 document.getElementById('filterMerhav').value = '';
-                document.getElementById('filterGush').value = '';
                 document.getElementById('filterRegion').value = '';
+                document.getElementById('filterGush').value = '';
                 document.getElementById('filterForest').value = '';
+                updateCascadingFilters(); 
             });
 
             // Clear selection
