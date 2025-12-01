@@ -964,6 +964,18 @@
                                 <option value="">הכל</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">אזור</label>
+                            <select class="form-select" id="filterRegion">
+                                <option value="">הכל</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">שם יער</label>
+                            <select class="form-select" id="filterForest">
+                                <option value="">הכל</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="btn-group">
                         <button class="btn btn-primary" id="btnApplyFilter">
@@ -1142,6 +1154,10 @@
                         <span>🚀</span>
                         <span>צור משימות</span>
                     </button>
+                    <button class="btn btn-secondary btn-block" id="btnClearAllSelection" style="margin-top: 8px;">
+                        <span>🗑️</span>
+                        <span>נקה בחירה</span>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -1258,7 +1274,9 @@
                 drawMode: null,
                 enclosuresData: [],
                 merhavOptions: new Set(),
-                gushOptions: new Set()
+                gushOptions: new Set(),
+                regionOptions: new Set(),
+                forestOptions: new Set()
             };
 
             // Layer references
@@ -1489,7 +1507,7 @@
                 try {
                     const query = enclosuresLayer.createQuery();
                     query.where = "1=1";
-                    query.outFields = ["MerhavName", "GushName", "GlobalID", "OBJECTID"];
+                    query.outFields = ["MerhavName", "GushName", "RegionName", "ForestName", "GlobalID", "OBJECTID"];
                     query.returnGeometry = true;
 
                     const result = await enclosuresLayer.queryFeatures(query);
@@ -1498,11 +1516,15 @@
                     result.features.forEach(f => {
                         if (f.attributes.MerhavName) state.merhavOptions.add(f.attributes.MerhavName);
                         if (f.attributes.GushName) state.gushOptions.add(f.attributes.GushName);
+                        if (f.attributes.RegionName) state.regionOptions.add(f.attributes.RegionName);
+                        if (f.attributes.ForestName) state.forestOptions.add(f.attributes.ForestName);
                     });
 
                     // Populate dropdowns
                     const merhavSelect = document.getElementById('filterMerhav');
                     const gushSelect = document.getElementById('filterGush');
+                    const regionSelect = document.getElementById('filterRegion');
+                    const forestSelect = document.getElementById('filterForest');
 
                     [...state.merhavOptions].sort().forEach(opt => {
                         merhavSelect.add(new Option(opt, opt));
@@ -1510,6 +1532,14 @@
 
                     [...state.gushOptions].sort().forEach(opt => {
                         gushSelect.add(new Option(opt, opt));
+                    });
+
+                    [...state.regionOptions].sort().forEach(opt => {
+                        regionSelect.add(new Option(opt, opt));
+                    });
+
+                    [...state.forestOptions].sort().forEach(opt => {
+                        forestSelect.add(new Option(opt, opt));
                     });
 
                     updateStatus(`נטענו ${result.features.length} מכלאות`);
@@ -1673,15 +1703,21 @@
             document.getElementById('btnApplyFilter').addEventListener('click', async () => {
                 const merhav = document.getElementById('filterMerhav').value;
                 const gush = document.getElementById('filterGush').value;
+                const region = document.getElementById('filterRegion').value;
+                const forest = document.getElementById('filterForest').value;
 
                 let whereClause = "1=1";
                 if (merhav) whereClause += ` AND MerhavName = '${merhav}'`;
                 if (gush) whereClause += ` AND GushName = '${gush}'`;
+                if (region) whereClause += ` AND RegionName = '${region}'`;
+                if (forest) whereClause += ` AND ForestName = '${forest}'`;
 
                 const filtered = state.enclosuresData.filter(f => {
                     let match = true;
                     if (merhav && f.attributes.MerhavName !== merhav) match = false;
                     if (gush && f.attributes.GushName !== gush) match = false;
+                    if (region && f.attributes.RegionName !== region) match = false;
+                    if (forest && f.attributes.ForestName !== forest) match = false;
                     return match;
                 });
 
@@ -1706,10 +1742,18 @@
             document.getElementById('btnClearFilter').addEventListener('click', () => {
                 document.getElementById('filterMerhav').value = '';
                 document.getElementById('filterGush').value = '';
+                document.getElementById('filterRegion').value = '';
+                document.getElementById('filterForest').value = '';
             });
 
             // Clear selection
             document.getElementById('btnClearSelection').addEventListener('click', () => {
+                state.selectedFeatures = [];
+                updateSelectionDisplay();
+            });
+
+            // Clear all selection (bottom button)
+            document.getElementById('btnClearAllSelection').addEventListener('click', () => {
                 state.selectedFeatures = [];
                 updateSelectionDisplay();
             });
