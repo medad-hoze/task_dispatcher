@@ -38,7 +38,15 @@
             padding: 0;
             box-sizing: border-box;
         }
+.form-group.disabled {
+    opacity: 0.5;
+}
 
+.form-group.disabled .form-label::after {
+    content: " (לא זמין)";
+    color: var(--text-muted);
+    font-size: 10px;
+}
         body {
             font-family: 'Heebo', sans-serif;
             background: var(--bg-primary);
@@ -1066,6 +1074,7 @@
                         <label class="form-label">שכבת מקור לבחירת יישויות</label>
                         <select class="form-select" id="sourceLayer">
                             <option value="enclosures">מכלאות</option>
+                            <option value="omdim">עומדים</option>
                         </select>
                     </div>
                 </div>
@@ -1449,23 +1458,25 @@
             esriConfig.portalUrl = "https://kkl.maps.arcgis.com";
 
             // App State
+            // App State
             const state = {
                 selectedFeatures: [],
                 isDrawing: false,
                 drawMode: null,
                 enclosuresData: [],
+                omdimData: [],
+                currentSourceLayer: 'enclosures', // Track current source
                 merhavOptions: new Set(),
                 gushOptions: new Set(),
                 regionOptions: new Set(),
                 forestOptions: new Set(),
-                // History for undo/redo
                 history: [],
                 historyIndex: -1
             };
 
             // Layer references
             let enclosuresLayerView = null;
-
+            let omdimLayerView = null;
             // Enclosures Layer (Polygon or Point) from portal item
             const enclosuresLayer = new FeatureLayer({
                 portalItem: {
@@ -1473,6 +1484,21 @@
                 },
                 title: "מכלאות",
                 outFields: ["*"]
+            });
+
+const omdimLayer = new FeatureLayer({
+    portalItem: {
+        id: "54dc52dfedb848af833ace9d2798b1c9"
+    },
+    layerId: 0,
+    title: "עומדים",
+    outFields: ["*"],
+    visible: true
+});
+
+            const omdimCentroidsLayer = new GraphicsLayer({
+                title: "נקודות עומדים",
+                listMode: "hide"
             });
 
             // Tasks Layer
@@ -1496,11 +1522,11 @@
                 listMode: "hide"
             });
 
-            // Initialize Map with layers
-            const map = new Map({
-                basemap: "gray-vector",
-                layers: [enclosuresLayer, tasksLayer, selectionGraphicsLayer, sketchGraphicsLayer]
-            });
+                // Initialize Map with layers
+                const map = new Map({
+                    basemap: "gray-vector",
+                    layers: [enclosuresLayer, omdimLayer, tasksLayer, omdimCentroidsLayer, selectionGraphicsLayer, sketchGraphicsLayer]
+                });
 
             const view = new MapView({
                 container: "viewDiv",
@@ -1534,6 +1560,47 @@
                 updateHistoryUI();
                 console.log("Added to history:", action);
             }
+
+
+            async function updateOmdimCentroids() {
+    omdimCentroidsLayer.removeAll();
+    
+    if (state.currentSourceLayer !== 'omdim') {
+        return;
+    }
+    
+    const centroidSymbol = {
+        type: "simple-marker",
+        color: [139, 92, 246, 0.8],
+        size: 12,
+        outline: {
+            color: [255, 255, 255],
+            width: 2
+        }
+    };
+    
+state.omdimData.forEach(feature => {
+    let centroid;
+    if (feature.geometry.type === "polygon" && feature.geometry.centroid) {
+        centroid = feature.geometry.centroid;
+    } else if (feature.geometry.type === "point") {
+        centroid = feature.geometry;
+    } else if (feature.geometry.extent) {
+        centroid = feature.geometry.extent.center;
+    }
+    
+    if (centroid) {
+        const graphic = new Graphic({
+            geometry: centroid,
+            symbol: centroidSymbol,
+            attributes: feature.attributes
+        });
+        omdimCentroidsLayer.add(graphic);
+    }
+});
+    
+    console.log(`Created ${omdimCentroidsLayer.graphics.length} centroid points for omdim`);
+}
 
             // Undo last action
             async function undoLastAction() {
@@ -1715,7 +1782,119 @@
             // =====================================================
             // ASSIGNEE DOMAIN LOADING
             // =====================================================
+
+            function getCurrentSourceLayer() {
+                return state.currentSourceLayer === 'enclosures' ? enclosuresLayer : omdimLayer;
+            }
+
+            function getCurrentSourceLayerView() {
+                return state.currentSourceLayer === 'enclosures' ? enclosuresLayerView : omdimLayerView;
+            }
+
+            function getCurrentSourceData() {
+                return state.currentSourceLayer === 'enclosures' ? state.enclosuresData : state.omdimData;
+            }
+
+            document.getElementById('sourceLayer').addEventListener('change', async function(e) {
+                state.currentSourceLayer = e.target.value;
+                state.selectedFeatures = [];
+                updateSelectionDisplay();
+                
+                // Show/hide centroid layer based on source
+                omdimCentroidsLayer.visible = (e.target.value === 'omdim');
+                
+                // Toggle layer visibility for better UX
+                enclosuresLayer.opacity = (e.target.value === 'enclosures') ? 1 : 0.3;
+                omdimLayer.opacity = (e.target.value === 'omdim') ? 1 : 0.3;
+                
+                await loadFilterOptions();
+                
+                // Create centroids for omdim if selected
+                if (e.target.value === 'omdim') {
+                    updateOmdimCentroids();
+                }
+                
+                showToast(`שכבת מקור שונתה ל${e.target.value === 'enclosures' ? 'מכלאות' : 'עומדים'}`, "success");
+            });
             
+
+async function initOmdimLayer() {
+    try {
+        await omdimLayer.when();
+        
+        console.log("=== OMDIM LAYER DEBUG ===");
+        console.log("Geometry type:", omdimLayer.geometryType);
+        console.log("Feature count from layer:", omdimLayer.sourceJSON?.count);
+        console.log("Spatial reference:", omdimLayer.spatialReference?.wkid);
+        console.log("Full extent:", omdimLayer.fullExtent);
+        console.log("Layer visible:", omdimLayer.visible);
+        console.log("Layer ID:", omdimLayer.layerId);
+        
+        // Set appropriate renderer based on actual geometry type
+        if (omdimLayer.geometryType === "point" || omdimLayer.geometryType === "multipoint") {
+            omdimLayer.renderer = {
+                type: "simple",
+                symbol: {
+                    type: "simple-marker",
+                    color: [139, 92, 246, 0.8],
+                    size: 10,
+                    outline: {
+                        color: [255, 255, 255],
+                        width: 2
+                    }
+                }
+            };
+            console.log("Applied POINT renderer");
+        } else if (omdimLayer.geometryType === "polygon") {
+            omdimLayer.renderer = {
+                type: "simple",
+                symbol: {
+                    type: "simple-fill",
+                    color: [139, 92, 246, 0.4],
+                    outline: {
+                        color: [139, 92, 246, 1],
+                        width: 2
+                    }
+                }
+            };
+            console.log("Applied POLYGON renderer");
+        } else if (omdimLayer.geometryType === "polyline") {
+            omdimLayer.renderer = {
+                type: "simple",
+                symbol: {
+                    type: "simple-line",
+                    color: [139, 92, 246, 1],
+                    width: 3
+                }
+            };
+            console.log("Applied LINE renderer");
+        }
+        
+        // Query to check if there are actual features
+        const query = omdimLayer.createQuery();
+        query.where = "1=1";
+        query.returnGeometry = true;
+        query.num = 5; // Just get 5 features to test
+        
+        const result = await omdimLayer.queryFeatures(query);
+        console.log("Sample features:", result.features.length);
+        
+        if (result.features.length > 0) {
+            const sampleGeom = result.features[0].geometry;
+            console.log("Sample geometry type:", sampleGeom?.type);
+            console.log("Sample geometry:", sampleGeom);
+            
+            // Zoom to layer extent to make sure we can see it
+            if (omdimLayer.fullExtent) {
+                console.log("Layer has extent, features should be visible");
+            }
+        }
+        
+    } catch (error) {
+        console.error("Error initializing omdim layer:", error);
+    }
+}
+
             async function loadAssigneeDomain() {
                 try {
                     await tasksLayer.when();
@@ -1751,11 +1930,11 @@
             // =====================================================
             // LAYER PANEL & LEGEND
             // =====================================================
-
             function initLayerPanel() {
                 const panelContent = document.getElementById('layerPanelContent');
                 const layers = [
                     { layer: enclosuresLayer, color: '#3b82f6', icon: '📍' },
+                    { layer: omdimLayer, color: '#8b5cf6', icon: '🌲' },
                     { layer: tasksLayer, color: '#10b981', icon: '📋' }
                 ];
 
@@ -1809,16 +1988,24 @@
                     const el0 = document.getElementById('layerCount0');
                     if (el0) el0.textContent = `${encResult} יישויות`;
 
+                    const omdQuery = omdimLayer.createQuery();
+                    omdQuery.where = "1=1";
+                    omdQuery.returnGeometry = false;
+                    const omdResult = await omdimLayer.queryFeatureCount(omdQuery);
+                    const el1 = document.getElementById('layerCount1');
+                    if (el1) el1.textContent = `${omdResult} עומדים`;
+
                     const taskQuery = tasksLayer.createQuery();
                     taskQuery.where = "1=1";
                     taskQuery.returnGeometry = false;
                     const taskResult = await tasksLayer.queryFeatureCount(taskQuery);
-                    const el1 = document.getElementById('layerCount1');
-                    if (el1) el1.textContent = `${taskResult} משימות`;
+                    const el2 = document.getElementById('layerCount2');
+                    if (el2) el2.textContent = `${taskResult} משימות`;
                 } catch (e) {
                     console.warn("Could not get layer counts:", e);
                 }
             }
+
 
             function updateLegend() {
                 const legendContent = document.getElementById('legendContent');
@@ -1875,174 +2062,339 @@
             // Selected features highlight symbol
             let selectedSymbol = null;
 
-            function updateSelectionEffect() {
-                if (!enclosuresLayerView) {
-                    console.log("No enclosuresLayerView yet");
-                    return;
-                }
 
-                selectionGraphicsLayer.removeAll();
 
-                if (state.selectedFeatures.length === 0) {
-                    enclosuresLayerView.filter = null;
-                    enclosuresLayerView.effect = null;
-                    return;
-                }
+function updateSelectionEffect() {
+    const currentLayerView = getCurrentSourceLayerView();
+    
+    if (!currentLayerView) {
+        console.log("No current layer view yet");
+        return;
+    }
 
-                const oidField = enclosuresLayer.objectIdField;
-                const ids = state.selectedFeatures.map(f => f.attributes[oidField]);
-                const where = oidField + " IN (" + ids.join(",") + ")";
+    selectionGraphicsLayer.removeAll();
 
-                console.log("Highlighting features:", ids);
+    // Clear effect from both layer views
+    if (enclosuresLayerView) {
+        enclosuresLayerView.filter = null;
+        enclosuresLayerView.effect = null;
+    }
+    if (omdimLayerView) {
+        omdimLayerView.filter = null;
+        omdimLayerView.effect = null;
+    }
 
-                enclosuresLayerView.effect = {
-                    filter: { where: where },
-                    includedEffect: "bloom(1.5) drop-shadow(3px, 3px, 10px, #f59e0b)",
-                    excludedEffect: "opacity(40%)"
-                };
+    if (state.selectedFeatures.length === 0) {
+        return;
+    }
 
-                if (enclosuresLayer.geometryType === "point" || enclosuresLayer.geometryType === "multipoint") {
-                    selectedSymbol = {
-                        type: "simple-marker",
-                        color: [245, 158, 11, 0.7],
-                        size: 18,
-                        outline: {
-                            color: [245, 158, 11, 1],
-                            width: 3
-                        }
-                    };
-                } else {
-                    selectedSymbol = {
-                        type: "simple-fill",
-                        color: [245, 158, 11, 0.4],
-                        outline: {
-                            color: [245, 158, 11, 1],
-                            width: 4
-                        }
-                    };
-                }
+    const sourceLayer = getCurrentSourceLayer();
+    const oidField = sourceLayer.objectIdField;
+    const ids = state.selectedFeatures.map(f => f.attributes[oidField]);
+    const where = oidField + " IN (" + ids.join(",") + ")";
 
-                state.selectedFeatures.forEach(f => {
-                    const graphic = new Graphic({
-                        geometry: f.geometry,
-                        symbol: selectedSymbol
-                    });
-                    selectionGraphicsLayer.add(graphic);
-                });
+    console.log("Highlighting features:", ids);
+
+    currentLayerView.effect = {
+        filter: { where: where },
+        includedEffect: "bloom(1.5) drop-shadow(3px, 3px, 10px, #f59e0b)",
+        excludedEffect: "opacity(40%)"
+    };
+
+    if (sourceLayer.geometryType === "point" || sourceLayer.geometryType === "multipoint") {
+        selectedSymbol = {
+            type: "simple-marker",
+            color: [245, 158, 11, 0.7],
+            size: 18,
+            outline: {
+                color: [245, 158, 11, 1],
+                width: 3
             }
+        };
+    } else {
+        selectedSymbol = {
+            type: "simple-fill",
+            color: [245, 158, 11, 0.4],
+            outline: {
+                color: [245, 158, 11, 1],
+                width: 4
+            }
+        };
+    }
 
-            // Load filter options
+    state.selectedFeatures.forEach(f => {
+        const graphic = new Graphic({
+            geometry: f.geometry,
+            symbol: selectedSymbol
+        });
+        selectionGraphicsLayer.add(graphic);
+    });
+}
 
-// Load filter options - REPLACE the existing function
+async function detectLayerFields(layer) {
+    await layer.when();
+    const fieldNames = layer.fields.map(f => f.name.toLowerCase());
+    const layerType = layer === omdimLayer ? 'omdim' : 'enclosures';
+    
+    // Map of possible field name variations
+    const fieldVariations = {
+        merhav: ['merhavname', 'merhav', 'merhav_name', 'space', 'spacename'],
+        region: ['regionname', 'region', 'region_name', 'ezor', 'ezorname'],
+        gush: ['gushname', 'gush', 'gush_name', 'block', 'blockname'],
+        forest: ['forestname', 'forest', 'forest_name', 'yaar', 'yaarname'],
+        globalId: ['globalid', 'global_id'],
+        displayName: ['gushname', 'name', 'objectname', 'displayname', 'title']
+    };
+    
+    // Detect each field
+    for (const [key, variations] of Object.entries(fieldVariations)) {
+        for (const variation of variations) {
+            const foundField = layer.fields.find(f => f.name.toLowerCase() === variation);
+            if (foundField) {
+                fieldMappings[layerType][key] = foundField.name;
+                break;
+            }
+        }
+    }
+    
+    console.log(`Detected fields for ${layerType}:`, fieldMappings[layerType]);
+    return fieldMappings[layerType];
+}
+
+// Field mappings per layer type
+const fieldMappings = {
+    enclosures: {
+        merhav: "MerhavName",
+        region: "RegionName", 
+        gush: "GushName",
+        forest: "ForestName",
+        globalId: "GlobalID",
+        displayName: "GushName"
+    },
+    omdim: {
+        merhav: null,  // Will be detected dynamically
+        region: null,
+        gush: null,
+        forest: null,
+        globalId: "GlobalID",
+        displayName: null
+    }
+};
+
+function getFieldMapping() {
+    return fieldMappings[state.currentSourceLayer];
+}
+
+
+function updateFilterAvailability(fields) {
+    const filterConfigs = [
+        { id: 'filterMerhav', field: fields.merhav, label: 'מרחב' },
+        { id: 'filterRegion', field: fields.region, label: 'אזור' },
+        { id: 'filterGush', field: fields.gush, label: 'גוש' },
+        { id: 'filterForest', field: fields.forest, label: 'שם יער' }
+    ];
+    
+    filterConfigs.forEach(config => {
+        const select = document.getElementById(config.id);
+        const formGroup = select.closest('.form-group');
+        
+        if (config.field) {
+            select.disabled = false;
+            formGroup.classList.remove('disabled');
+        } else {
+            select.disabled = true;
+            select.innerHTML = '<option value="">לא זמין</option>';
+            formGroup.classList.add('disabled');
+        }
+    });
+}
+
 async function loadFilterOptions() {
     try {
-        const query = enclosuresLayer.createQuery();
+        const sourceLayer = getCurrentSourceLayer();
+        
+        // Detect fields dynamically for this layer
+        await detectLayerFields(sourceLayer);
+        
+        const fields = getFieldMapping();
+        
+        const query = sourceLayer.createQuery();
         query.where = "1=1";
-        query.outFields = ["MerhavName", "GushName", "RegionName", "ForestName", "GlobalID", "OBJECTID"];
+        query.outFields = ["*"];
         query.returnGeometry = true;
 
-        const result = await enclosuresLayer.queryFeatures(query);
-        state.enclosuresData = result.features;
+        const result = await sourceLayer.queryFeatures(query);
+        
+        // Store data based on current source
+        if (state.currentSourceLayer === 'enclosures') {
+            state.enclosuresData = result.features;
+        } else {
+            state.omdimData = result.features;
+            // Update centroids when omdim data is loaded
+            updateOmdimCentroids();
+        }
 
-        // Initial population of Merhav (top level)
-        result.features.forEach(f => {
-            if (f.attributes.MerhavName) state.merhavOptions.add(f.attributes.MerhavName);
-        });
+        // Clear existing options
+        state.merhavOptions.clear();
+        state.gushOptions.clear();
+        state.regionOptions.clear();
+        state.forestOptions.clear();
+
+        // Update filter UI based on available fields
+        updateFilterAvailability(fields);
+
+        // Populate Merhav (top level) if field exists
+        if (fields.merhav) {
+            result.features.forEach(f => {
+                const merhavVal = f.attributes[fields.merhav];
+                if (merhavVal) state.merhavOptions.add(merhavVal);
+            });
+        }
 
         const merhavSelect = document.getElementById('filterMerhav');
+        merhavSelect.innerHTML = '<option value="">הכל</option>';
         [...state.merhavOptions].sort().forEach(opt => {
             merhavSelect.add(new Option(opt, opt));
         });
 
-        // Initially populate all other dropdowns based on no filter
-        updateCascadingFilters();
+        // Reset other filters
+        document.getElementById('filterRegion').innerHTML = '<option value="">הכל</option>';
+        document.getElementById('filterGush').innerHTML = '<option value="">הכל</option>';
+        document.getElementById('filterForest').innerHTML = '<option value="">הכל</option>';
 
-        updateStatus(`נטענו ${result.features.length} מכלאות`);
+        updateCascadingFilters();
+        updateStatus(`נטענו ${result.features.length} ${state.currentSourceLayer === 'enclosures' ? 'מכלאות' : 'עומדים'}`);
     } catch (error) {
         console.error("Error loading filter options:", error);
         showToast("שגיאה בטעינת הנתונים", "error");
     }
 }
 
-        // ADD this new function for cascading filter logic
-        function updateCascadingFilters() {
-            const merhav = document.getElementById('filterMerhav').value;
-            const region = document.getElementById('filterRegion').value;
-            const gush = document.getElementById('filterGush').value;
+function updateCascadingFilters() {
+    const fields = getFieldMapping();
+    const merhav = document.getElementById('filterMerhav').value;
 
-            // Filter data based on current selections
-            let filteredData = [...state.enclosuresData];
+    // Filter data based on current selections
+    let filteredData = [...getCurrentSourceData()];
 
-            // Apply מרחב filter
-            if (merhav) {
-                filteredData = filteredData.filter(f => f.attributes.MerhavName === merhav);
-            }
+    // Apply מרחב filter (only if field exists)
+    if (merhav && fields.merhav) {
+        filteredData = filteredData.filter(f => f.attributes[fields.merhav] === merhav);
+    }
 
-            // Get available regions from filtered data
-            const availableRegions = new Set();
-            filteredData.forEach(f => {
-                if (f.attributes.RegionName) availableRegions.add(f.attributes.RegionName);
-            });
+    // Get available regions from filtered data (only if field exists)
+    const availableRegions = new Set();
+    if (fields.region) {
+        filteredData.forEach(f => {
+            if (f.attributes[fields.region]) availableRegions.add(f.attributes[fields.region]);
+        });
+    }
 
-            // Update Region dropdown
-            const regionSelect = document.getElementById('filterRegion');
-            const currentRegion = regionSelect.value;
-            regionSelect.innerHTML = '<option value="">הכל</option>';
-            [...availableRegions].sort().forEach(opt => {
-                regionSelect.add(new Option(opt, opt));
-            });
-            // Restore selection if still valid
-            if (availableRegions.has(currentRegion)) {
-                regionSelect.value = currentRegion;
-            }
+    // Update Region dropdown (only if field exists)
+    const regionSelect = document.getElementById('filterRegion');
+    if (fields.region) {
+        const currentRegion = regionSelect.value;
+        regionSelect.innerHTML = '<option value="">הכל</option>';
+        [...availableRegions].sort().forEach(opt => {
+            regionSelect.add(new Option(opt, opt));
+        });
+        if (availableRegions.has(currentRegion)) {
+            regionSelect.value = currentRegion;
+        }
+    }
 
-            // Apply אזור filter for next levels
-            if (regionSelect.value) {
-                filteredData = filteredData.filter(f => f.attributes.RegionName === regionSelect.value);
-            }
+    // Apply אזור filter for next levels
+    if (regionSelect.value && fields.region) {
+        filteredData = filteredData.filter(f => f.attributes[fields.region] === regionSelect.value);
+    }
 
-            // Get available Gush from filtered data
-            const availableGush = new Set();
-            filteredData.forEach(f => {
-                if (f.attributes.GushName) availableGush.add(f.attributes.GushName);
-            });
+    // Get available Gush from filtered data (only if field exists)
+    const availableGush = new Set();
+    if (fields.gush) {
+        filteredData.forEach(f => {
+            if (f.attributes[fields.gush]) availableGush.add(f.attributes[fields.gush]);
+        });
+    }
 
-            // Update Gush dropdown
-            const gushSelect = document.getElementById('filterGush');
-            const currentGush = gushSelect.value;
-            gushSelect.innerHTML = '<option value="">הכל</option>';
-            [...availableGush].sort().forEach(opt => {
-                gushSelect.add(new Option(opt, opt));
-            });
-            // Restore selection if still valid
-            if (availableGush.has(currentGush)) {
-                gushSelect.value = currentGush;
-            }
+    // Update Gush dropdown (only if field exists)
+    const gushSelect = document.getElementById('filterGush');
+    if (fields.gush) {
+        const currentGush = gushSelect.value;
+        gushSelect.innerHTML = '<option value="">הכל</option>';
+        [...availableGush].sort().forEach(opt => {
+            gushSelect.add(new Option(opt, opt));
+        });
+        if (availableGush.has(currentGush)) {
+            gushSelect.value = currentGush;
+        }
+    }
 
-            // Apply גוש filter for next level
-            if (gushSelect.value) {
-                filteredData = filteredData.filter(f => f.attributes.GushName === gushSelect.value);
-            }
+    // Apply גוש filter for next level
+    if (gushSelect.value && fields.gush) {
+        filteredData = filteredData.filter(f => f.attributes[fields.gush] === gushSelect.value);
+    }
 
-            // Get available Forests from filtered data
-            const availableForests = new Set();
-            filteredData.forEach(f => {
-                if (f.attributes.ForestName) availableForests.add(f.attributes.ForestName);
-            });
+    // Get available Forests from filtered data (only if field exists)
+    const availableForests = new Set();
+    if (fields.forest) {
+        filteredData.forEach(f => {
+            if (f.attributes[fields.forest]) availableForests.add(f.attributes[fields.forest]);
+        });
+    }
 
-            // Update Forest dropdown
-            const forestSelect = document.getElementById('filterForest');
-            const currentForest = forestSelect.value;
-            forestSelect.innerHTML = '<option value="">הכל</option>';
-            [...availableForests].sort().forEach(opt => {
-                forestSelect.add(new Option(opt, opt));
-            });
-            // Restore selection if still valid
-            if (availableForests.has(currentForest)) {
-                forestSelect.value = currentForest;
+    // Update Forest dropdown (only if field exists)
+    const forestSelect = document.getElementById('filterForest');
+    if (fields.forest) {
+        const currentForest = forestSelect.value;
+        forestSelect.innerHTML = '<option value="">הכל</option>';
+        [...availableForests].sort().forEach(opt => {
+            forestSelect.add(new Option(opt, opt));
+        });
+        if (availableForests.has(currentForest)) {
+            forestSelect.value = currentForest;
+        }
+    }
+}
+
+// REPLACE btnApplyFilter event listener
+document.getElementById('btnApplyFilter').addEventListener('click', async () => {
+    const fields = getFieldMapping();
+    const merhav = document.getElementById('filterMerhav').value;
+    const gush = document.getElementById('filterGush').value;
+    const region = document.getElementById('filterRegion').value;
+    const forest = document.getElementById('filterForest').value;
+
+    const sourceData = getCurrentSourceData();
+    const filtered = sourceData.filter(f => {
+        let match = true;
+        if (merhav && fields.merhav && f.attributes[fields.merhav] !== merhav) match = false;
+        if (gush && fields.gush && f.attributes[fields.gush] !== gush) match = false;
+        if (region && fields.region && f.attributes[fields.region] !== region) match = false;
+        if (forest && fields.forest && f.attributes[fields.forest] !== forest) match = false;
+        return match;
+    });
+
+    state.selectedFeatures = [...filtered];
+    updateSelectionDisplay();
+
+    if (filtered.length > 0) {
+        showToast(`נבחרו ${filtered.length} ${state.currentSourceLayer === 'enclosures' ? 'מכלאות' : 'עומדים'}`, "success");
+        
+        const extent = filtered.reduce((ext, f) => {
+            if (!ext) return f.geometry.extent || f.geometry;
+            return ext.union ? ext.union(f.geometry.extent || f.geometry) : ext;
+        }, null);
+        if (extent) {
+            if (extent.expand) {
+                view.goTo(extent.expand(1.5));
+            } else {
+                view.goTo({ target: filtered.map(f => f.geometry), zoom: 12 });
             }
         }
-
+    } else {
+        showToast("לא נמצאו תוצאות", "warning");
+    }
+});
         // ADD event listeners for cascading filters - add this after the existing filter event listeners
         document.getElementById('filterMerhav').addEventListener('change', function() {
             // Reset child filters when parent changes
@@ -2070,45 +2422,74 @@ async function loadFilterOptions() {
         });
 
 
-            // Update selection display
-            function updateSelectionDisplay() {
-                const count = state.selectedFeatures.length;
-                document.getElementById('selectionCount').textContent = count;
-                document.getElementById('statSelected').textContent = count;
-
-                const intervals = document.getElementById('enableIntervals').checked ? 
-                    parseInt(document.getElementById('intervalCount').value) || 1 : 1;
-                document.getElementById('statIntervals').textContent = intervals;
-                
-                const totalTasks = count * intervals;
-                document.getElementById('statTotalTasks').textContent = totalTasks;
-
-                const listContainer = document.getElementById('selectedList');
-                
-                if (count === 0) {
-                    listContainer.innerHTML = `
-                        <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
-                            לא נבחרו יישויות.<br>השתמש בכלי הבחירה במפה או בסינון.
-                        </div>
-                    `;
-                    document.getElementById('btnCreateTasks').disabled = true;
-                    document.getElementById('taskPreview').style.display = 'none';
-                } else {
-                    listContainer.innerHTML = state.selectedFeatures.map((f, idx) => `
-                        <div class="selected-item">
-                            <div class="selected-item-name">
-                                <div class="selected-item-icon">📍</div>
-                                <span>${f.attributes.GushName || f.attributes.MerhavName || 'מכלאה ' + (idx + 1)}</span>
-                            </div>
-                            <button class="remove-item" onclick="removeSelection(${idx})">✕</button>
-                        </div>
-                    `).join('');
-                    document.getElementById('btnCreateTasks').disabled = false;
-                    updatePreview();
-                }
-
-                updateSelectionEffect();
+        function updateOmdimCentroidHighlights() {
+    const oidField = omdimLayer.objectIdField || 'OBJECTID';
+    const selectedOids = state.selectedFeatures.map(f => f.attributes[oidField]);
+    
+    omdimCentroidsLayer.graphics.forEach(g => {
+        const isSelected = selectedOids.includes(g.attributes[oidField]);
+        g.symbol = {
+            type: "simple-marker",
+            color: isSelected ? [245, 158, 11, 0.9] : [139, 92, 246, 0.8],
+            size: isSelected ? 16 : 12,
+            outline: {
+                color: isSelected ? [245, 158, 11, 1] : [255, 255, 255],
+                width: isSelected ? 3 : 2
             }
+        };
+    });
+}
+
+function updateSelectionDisplay() {
+    const count = state.selectedFeatures.length;
+    const fields = getFieldMapping();
+    
+    document.getElementById('selectionCount').textContent = count;
+    document.getElementById('statSelected').textContent = count;
+
+    const intervals = document.getElementById('enableIntervals').checked ? 
+        parseInt(document.getElementById('intervalCount').value) || 1 : 1;
+    document.getElementById('statIntervals').textContent = intervals;
+    
+    const totalTasks = count * intervals;
+    document.getElementById('statTotalTasks').textContent = totalTasks;
+
+    const listContainer = document.getElementById('selectedList');
+    
+    if (count === 0) {
+        listContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">
+                לא נבחרו יישויות.<br>השתמש בכלי הבחירה במפה או בסינון.
+            </div>
+        `;
+        document.getElementById('btnCreateTasks').disabled = true;
+        document.getElementById('taskPreview').style.display = 'none';
+    } else {
+        // Use detected field for display name, or fallback
+        const displayField = fields.displayName || fields.gush || fields.merhav || 'OBJECTID';
+        const icon = state.currentSourceLayer === 'enclosures' ? '📍' : '🌲';
+        const defaultName = state.currentSourceLayer === 'enclosures' ? 'מכלאה' : 'עומד';
+        
+        listContainer.innerHTML = state.selectedFeatures.map((f, idx) => `
+            <div class="selected-item">
+                <div class="selected-item-name">
+                    <div class="selected-item-icon">${icon}</div>
+                    <span>${f.attributes[displayField] || f.attributes.OBJECTID || defaultName + ' ' + (idx + 1)}</span>
+                </div>
+                <button class="remove-item" onclick="removeSelection(${idx})">✕</button>
+            </div>
+        `).join('');
+        document.getElementById('btnCreateTasks').disabled = false;
+        updatePreview();
+    }
+
+    updateSelectionEffect();
+    
+    // Update centroid highlights for omdim
+    if (state.currentSourceLayer === 'omdim') {
+        updateOmdimCentroidHighlights();
+    }
+}
 
             // Remove selection
             window.removeSelection = function(index) {
@@ -2217,36 +2598,37 @@ async function loadFilterOptions() {
             }
 
             // Apply filter
-            document.getElementById('btnApplyFilter').addEventListener('click', async () => {
-                const merhav = document.getElementById('filterMerhav').value;
-                const gush = document.getElementById('filterGush').value;
-                const region = document.getElementById('filterRegion').value;
-                const forest = document.getElementById('filterForest').value;
+document.getElementById('btnApplyFilter').addEventListener('click', async () => {
+    const merhav = document.getElementById('filterMerhav').value;
+    const gush = document.getElementById('filterGush').value;
+    const region = document.getElementById('filterRegion').value;
+    const forest = document.getElementById('filterForest').value;
 
-                const filtered = state.enclosuresData.filter(f => {
-                    let match = true;
-                    if (merhav && f.attributes.MerhavName !== merhav) match = false;
-                    if (gush && f.attributes.GushName !== gush) match = false;
-                    if (region && f.attributes.RegionName !== region) match = false;
-                    if (forest && f.attributes.ForestName !== forest) match = false;
-                    return match;
-                });
+    const sourceData = getCurrentSourceData();
+    const filtered = sourceData.filter(f => {
+        let match = true;
+        if (merhav && f.attributes.MerhavName !== merhav) match = false;
+        if (gush && f.attributes.GushName !== gush) match = false;
+        if (region && f.attributes.RegionName !== region) match = false;
+        if (forest && f.attributes.ForestName !== forest) match = false;
+        return match;
+    });
 
-                state.selectedFeatures = [...filtered];
-                updateSelectionDisplay();
+    state.selectedFeatures = [...filtered];
+    updateSelectionDisplay();
 
-                if (filtered.length > 0) {
-                    showToast(`נבחרו ${filtered.length} מכלאות`, "success");
-                    
-                    const extent = filtered.reduce((ext, f) => {
-                        if (!ext) return f.geometry.extent;
-                        return ext.union(f.geometry.extent);
-                    }, null);
-                    if (extent) view.goTo(extent.expand(1.5));
-                } else {
-                    showToast("לא נמצאו תוצאות", "error");
-                }
-            });
+    if (filtered.length > 0) {
+        showToast(`נבחרו ${filtered.length} ${state.currentSourceLayer === 'enclosures' ? 'מכלאות' : 'עומדים'}`, "success");
+        
+        const extent = filtered.reduce((ext, f) => {
+            if (!ext) return f.geometry.extent;
+            return ext.union(f.geometry.extent);
+        }, null);
+        if (extent) view.goTo(extent.expand(1.5));
+    } else {
+        showToast("לא נמצאו תוצאות", "error");
+    }
+});
 
             // Clear filter
             document.getElementById('btnClearFilter').addEventListener('click', () => {
@@ -2353,48 +2735,52 @@ async function loadFilterOptions() {
                 view.goTo({ center: [35.2, 31.5], zoom: 8 });
             });
 
-            // Select by geometry
-            async function selectByGeometry(geometry) {
-                try {
-                    updateStatus("מחפש מכלאות באזור שנבחר...");
-                    
-                    const query = enclosuresLayer.createQuery();
-                    query.geometry = geometry;
-                    query.spatialRelationship = "intersects";
-                    query.outFields = ["*"];
-                    query.returnGeometry = true;
 
-                    const result = await enclosuresLayer.queryFeatures(query);
 
-                    if (result.features.length === 0) {
-                        showToast("לא נמצאו מכלאות באזור שנבחר", "error");
-                        updateStatus("לא נמצאו מכלאות");
-                        return;
-                    }
+async function selectByGeometry(geometry) {
+    try {
+        const layerName = state.currentSourceLayer === 'enclosures' ? 'מכלאות' : 'עומדים';
+        updateStatus(`מחפש ${layerName} באזור שנבחר...`);
+        
+        const sourceLayer = getCurrentSourceLayer();
+        const query = sourceLayer.createQuery();
+        query.geometry = geometry;
+        query.spatialRelationship = "intersects";
+        query.outFields = ["*"];
+        query.returnGeometry = true;
 
-                    const oidField = enclosuresLayer.objectIdField;
-                    let addedCount = 0;
+        const result = await sourceLayer.queryFeatures(query);
 
-                    result.features.forEach(f => {
-                        const exists = state.selectedFeatures.some(sf => 
-                            sf.attributes[oidField] === f.attributes[oidField]
-                        );
-                        if (!exists) {
-                            state.selectedFeatures.push(f);
-                            addedCount++;
-                        }
-                    });
+        if (result.features.length === 0) {
+            showToast(`לא נמצאו ${layerName} באזור שנבחר`, "error");
+            updateStatus(`לא נמצאו ${layerName}`);
+            return;
+        }
 
-                    updateSelectionDisplay();
-                    showToast(`נוספו ${addedCount} מכלאות לבחירה`, "success");
-                    updateStatus(`נבחרו ${state.selectedFeatures.length} מכלאות`);
+        const oidField = sourceLayer.objectIdField;
+        let addedCount = 0;
 
-                } catch (error) {
-                    console.error("Error in selectByGeometry:", error);
-                    showToast("שגיאה בבחירת מכלאות: " + error.message, "error");
-                    updateStatus("שגיאה בבחירה");
-                }
+        result.features.forEach(f => {
+            const exists = state.selectedFeatures.some(sf => 
+                sf.attributes[oidField] === f.attributes[oidField]
+            );
+            if (!exists) {
+                state.selectedFeatures.push(f);
+                addedCount++;
             }
+        });
+
+        updateSelectionDisplay();
+        showToast(`נוספו ${addedCount} ${layerName} לבחירה`, "success");
+        updateStatus(`נבחרו ${state.selectedFeatures.length} ${layerName}`);
+
+    } catch (error) {
+        console.error("Error in selectByGeometry:", error);
+        showToast("שגיאה בבחירה: " + error.message, "error");
+        updateStatus("שגיאה בבחירה");
+    }
+}
+
 
             // Create tasks
             document.getElementById('btnCreateTasks').addEventListener('click', () => {
@@ -2415,12 +2801,17 @@ async function loadFilterOptions() {
 
             document.getElementById('btnModalConfirm').addEventListener('click', createTasks);
 
+
+
+
             async function createTasks() {
                 const tasks = generateTasksPreview();
                 const taskType = parseInt(document.getElementById('taskType').value);
                 const taskStatus = parseInt(document.getElementById('taskStatus').value);
                 const taskPriority = parseInt(document.getElementById('taskPriority').value);
                 const taskAssignee = document.getElementById('taskAssignee').value;
+                
+                const sourceLayer = getCurrentSourceLayer();
 
                 document.getElementById('modalFooter').style.display = 'none';
                 document.getElementById('progressBar').style.display = 'block';
@@ -2433,8 +2824,14 @@ async function loadFilterOptions() {
                     const task = tasks[i];
                     let pointGeom = task.feature.geometry;
 
+                    // Always take centroid for polygon layers
                     if (pointGeom.type !== "point") {
-                        pointGeom = geometryEngine.centroid(pointGeom);
+                        // Use geometry's centroid property for polygons, or calculate for polylines
+                        if (pointGeom.centroid) {
+                            pointGeom = pointGeom.centroid;
+                        } else if (pointGeom.extent) {
+                            pointGeom = pointGeom.extent.center;
+                        }
                     }
 
                     const attributes = {
@@ -2443,8 +2840,8 @@ async function loadFilterOptions() {
                         esritask_priority: taskPriority,
                         esritask_duedate: task.endDate.getTime(),
                         ParentFeatureGlobalID: task.feature.attributes.GlobalID,
-                        RelatedLayerName: enclosuresLayer.title,
-                        RelatedLayerID: enclosuresLayer.portalItem.id
+                        RelatedLayerName: sourceLayer.title,
+                        RelatedLayerID: sourceLayer.portalItem.id
                     };
 
                     if (taskAssignee && taskAssignee.trim()) {
@@ -2531,6 +2928,96 @@ async function loadFilterOptions() {
                 }
             }
 
+
+
+                async function zoomToOmdim() {
+    await omdimLayer.when();
+    if (omdimLayer.fullExtent) {
+        view.goTo(omdimLayer.fullExtent.expand(1.2));
+        showToast("מתקרב לשכבת עומדים", "success");
+    } else {
+        // Query to get extent from features
+        const query = omdimLayer.createQuery();
+        query.where = "1=1";
+        query.returnGeometry = true;
+        const result = await omdimLayer.queryFeatures(query);
+        if (result.features.length > 0) {
+            view.goTo(result.features);
+            showToast(`נמצאו ${result.features.length} עומדים`, "success");
+        }
+    }
+}
+
+async function forceOmdimRenderer() {
+    await omdimLayer.when();
+    
+    console.log("=== OMDIM RENDERER DEBUG ===");
+    console.log("Geometry type:", omdimLayer.geometryType);
+    console.log("Current renderer:", omdimLayer.renderer);
+    
+    // Remove any scale restrictions
+    omdimLayer.minScale = 0;
+    omdimLayer.maxScale = 0;
+    
+    // Ensure visibility
+    omdimLayer.visible = true;
+    omdimLayer.opacity = 1;
+    
+    // Apply a very visible renderer regardless of geometry type
+    if (omdimLayer.geometryType === "polygon") {
+        omdimLayer.renderer = {
+            type: "simple",
+            symbol: {
+                type: "simple-fill",
+                color: [255, 0, 255, 0.5],  // Bright magenta for visibility
+                style: "solid",
+                outline: {
+                    color: [255, 0, 255, 1],
+                    width: 3
+                }
+            }
+        };
+    } else if (omdimLayer.geometryType === "point" || omdimLayer.geometryType === "multipoint") {
+        omdimLayer.renderer = {
+            type: "simple",
+            symbol: {
+                type: "simple-marker",
+                color: [255, 0, 255, 0.9],  // Bright magenta
+                size: 20,  // Larger size
+                style: "circle",
+                outline: {
+                    color: [255, 255, 0],  // Yellow outline
+                    width: 3
+                }
+            }
+        };
+    } else if (omdimLayer.geometryType === "polyline") {
+        omdimLayer.renderer = {
+            type: "simple",
+            symbol: {
+                type: "simple-line",
+                color: [255, 0, 255, 1],
+                width: 5,
+                style: "solid"
+            }
+        };
+    }
+    
+    // Force layer to top
+    map.reorder(omdimLayer, map.layers.length - 2);
+    
+    omdimLayer.refresh();
+    console.log("Applied renderer:", omdimLayer.renderer);
+}
+// You can call zoomToOmdim() from console to test, or add to btnHome:
+document.getElementById('btnHome').addEventListener('click', () => {
+    if (state.currentSourceLayer === 'omdim') {
+        zoomToOmdim();
+    } else {
+        view.goTo({ center: [35.2, 31.5], zoom: 8 });
+    }
+});
+
             // Toast notifications
             function showToast(message, type = "success") {
                 const container = document.getElementById('toastContainer');
@@ -2573,10 +3060,13 @@ async function loadFilterOptions() {
                 showToast("מפת רקע שונתה", "success");
             });
 
+
             // Initialize
             view.when().then(function() {
                 map.reorder(selectionGraphicsLayer, map.layers.length - 1);
                 updateStatus("מפה נטענה, ממתין לשכבות...");
+
+
                 
                 reactiveUtils.whenOnce(() => enclosuresLayer.loaded && tasksLayer.loaded)
                     .then(function() {
@@ -2594,6 +3084,8 @@ async function loadFilterOptions() {
                             console.log(`  - ${field.name} (${field.type})${field.nullable ? '' : ' [REQUIRED]'}${field.domain ? ' [DOMAIN]' : ''}`);
                         });
                         
+                        initOmdimLayer();
+
                         loadFilterOptions();
                         initLayerPanel();
                         updateLegend();
@@ -2605,35 +3097,79 @@ async function loadFilterOptions() {
                     enclosuresLayerView = lv;
                     console.log("LayerView for enclosures ready");
 
-                    view.on("click", function(event) {
-                        if (state.drawMode !== 'select') return;
+                                                view.whenLayerView(omdimLayer).then(function(lv) {
+                    omdimLayerView = lv;
+                    console.log("LayerView for omdim ready");
+                });
 
-                        view.hitTest(event).then(function(response) {
-                            const results = response.results.filter(function(r) {
-                                return r.graphic && r.graphic.layer === enclosuresLayer;
-                            });
 
-                            if (!results.length) return;
 
-                            const graphic = results[0].graphic;
-                            const oidField = enclosuresLayer.objectIdField;
-                            const oid = graphic.attributes[oidField];
+// FIND this block in initialization and ADD the forceOmdimRenderer() call:
+view.whenLayerView(omdimLayer).then(function(lv) {
+    omdimLayerView = lv;
+    console.log("LayerView for omdim ready");
+    forceOmdimRenderer();  // <-- ADD THIS LINE
+    map.reorder(omdimLayer, map.layers.length - 3); // Put it above enclosures but below selection layers
 
-                            const existingIndex = state.selectedFeatures.findIndex(f => 
-                                f.attributes[oidField] === oid
-                            );
+});
 
-                            if (existingIndex >= 0) {
-                                state.selectedFeatures.splice(existingIndex, 1);
-                                showToast("מכלאה הוסרה מהבחירה", "success");
-                            } else {
-                                state.selectedFeatures.push(graphic);
-                                showToast("מכלאה נוספה לבחירה", "success");
-                            }
-                            
-                            updateSelectionDisplay();
-                        });
-                    });
+
+view.on("click", function(event) {
+    if (state.drawMode !== 'select') return;
+
+    const sourceLayer = getCurrentSourceLayer();
+    
+    view.hitTest(event).then(function(response) {
+        // Check for hits on source layer OR centroid layer (for omdim)
+        let results = response.results.filter(function(r) {
+            return r.graphic && r.graphic.layer === sourceLayer;
+        });
+        
+        // If selecting omdim and no polygon hit, check centroid layer
+        if (results.length === 0 && state.currentSourceLayer === 'omdim') {
+            const centroidHits = response.results.filter(function(r) {
+                return r.graphic && r.graphic.layer === omdimCentroidsLayer;
+            });
+            
+            if (centroidHits.length > 0) {
+                // Find the original feature from omdimData
+                const centroidGraphic = centroidHits[0].graphic;
+                const oidField = omdimLayer.objectIdField || 'OBJECTID';
+                const oid = centroidGraphic.attributes[oidField];
+                
+                const originalFeature = state.omdimData.find(f => 
+                    f.attributes[oidField] === oid
+                );
+                
+                if (originalFeature) {
+                    results = [{ graphic: originalFeature }];
+                }
+            }
+        }
+
+        if (!results.length) return;
+
+        const graphic = results[0].graphic;
+        const oidField = sourceLayer.objectIdField || 'OBJECTID';
+        const oid = graphic.attributes[oidField];
+
+        const existingIndex = state.selectedFeatures.findIndex(f => 
+            f.attributes[oidField] === oid
+        );
+
+        const layerName = state.currentSourceLayer === 'enclosures' ? 'מכלאה' : 'עומד';
+
+        if (existingIndex >= 0) {
+            state.selectedFeatures.splice(existingIndex, 1);
+            showToast(`${layerName} הוסר מהבחירה`, "success");
+        } else {
+            state.selectedFeatures.push(graphic);
+            showToast(`${layerName} נוסף לבחירה`, "success");
+        }
+        
+        updateSelectionDisplay();
+    });
+});
                 });
             }).catch(function(err) {
                 console.error("Error loading map:", err);
